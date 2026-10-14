@@ -355,6 +355,8 @@ const SITE_DATA = {
   }
   .map-tag::before { content: ""; position: absolute; left: 7px; top: 9px; width: 6px; height: 6px; border-radius: 50%; border: 1.5px solid var(--kogecha); }
   .lead { color: var(--muted); font-size: 15px; margin: 14px 0 0; }
+  /* いちばん下の制作者の名前 */
+  .credit { text-align: center; margin: 32px 0 0; font-family: var(--font-sub); font-size: 14px; color: var(--muted); }
 
   /* ---- 横の列（つぎの工事・おつかい・ボタン） ---- */
   .next-sign {
@@ -1086,6 +1088,7 @@ const SITE_DATA = {
     </div>
   </div>
   <div id="app"></div>
+  <p class="credit"><ruby>制作<rt>せいさく</rt></ruby>：<ruby>教材化<rt>きょうざいか</rt></ruby>クリエーター Shiro</p>
 </main>
 
 <script>
