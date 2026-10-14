@@ -1,0 +1,618 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>お米農家になろう</title>
+
+<script>
+/* ===== ここから問題データ（文章はここだけ直してください） =====
+   ・直してよいのは " " の中の文字と、数字だけです
+   ・ふりがな：{漢字|かんじ} と書くと、漢字の上にふりがなが出ます
+   ・points は 1問につき 3・1・0 を1つずつ
+   ・数字が毎回変わる問題：
+       vars に「使う数の候補」を書きます（例：use: [8, 10, 12]）
+       文章の中で [use] と書くと、その数が入ります
+       [use*3] [use+5] のように、＋ − × ÷（+ - * /）の計算も書けます
+   ・hard: true と書くと、問題に「★むずかしい」の印がつきます
+   ・季節のない問題は「問題の山」になり、毎回くじで pickCount 問（書かなければ4問）が出ます
+   ・season：その季節だけに出る問題（0＝春、1＝夏、2＝秋、3＝冬）。書かなければ毎回出ます
+*/
+const GAME_DATA = {
+  gameId: "rice",   // まちの地図の駅と同じ id（変えないでください）
+  title: "お{米|こめ}{農家|のうか}になろう",
+  shopName: "{田|た}んぼ",
+  howToPlay: "あなたはお{米|こめ}をつくる{農家|のうか}。5つの{場面|ばめん}で、いちばんよいと{思|おも}う{答|こた}えを{選|えら}ぼう。{数字|すうじ}は{毎回|まいかい}かわるよ。",
+  seasons: ["{春|はる}", "{夏|なつ}", "{秋|あき}", "{冬|ふゆ}"],
+  feedback: {
+    3: "3点！ よい{判断|はんだん}！",
+    1: "1点 まあまあ",
+    0: "0点 ざんねん"
+  },
+  questions: [
+    {
+      heading: "{苗|なえ}の{準備|じゅんび}",
+      industry: "{第|だい}1{次|じ}{産業|さんぎょう}：お{米|こめ}をつくる",
+      vars: { n: [20, 30, 40], f: [2, 3, 5] },
+      text: "{田|た}んぼ1{枚|まい}に、{稲|いね}の{苗|なえ}が[n]{箱|はこ}いる。{田|た}んぼは[f]{枚|まい}ある。{植|う}えるときに{苗|なえ}がいたむこともあるので、1{割|わり}よぶんに{用意|ようい}したい。{苗|なえ}は{何箱|なんはこ}{用意|ようい}する？",
+      choices: [
+        { label: "[n*f*1.1]{箱|はこ}", points: 3 },
+        { label: "[n*f]{箱|はこ}", points: 1 },
+        { label: "[n*f*2]{箱|はこ}", points: 0 }
+      ],
+      explanation: "{必要|ひつよう}なのは [n]{箱|はこ} × [f]{枚|まい} ＝ [n*f]{箱|はこ}。その1{割|わり}は[n*f*0.1]{箱|はこ}なので、あわせて[n*f*1.1]{箱|はこ}。ぴったりだと、いたんだときに{足|た}りなくなる。2{倍|ばい}は{多|おお}すぎてむだになる。",
+      phrase: { word: "{段取|だんど}り{八分|はちぶ}", meaning: "{仕事|しごと}のできばえは、{前|まえ}もっての{準備|じゅんび}で8{割|わり}が{決|き}まるということ" }
+    },
+    {
+      heading: "{台風|たいふう}が{来|く}る",
+      industry: "{第|だい}1{次|じ}{産業|さんぎょう}：お{米|こめ}をつくる",
+      vars: { h: [24, 36, 48] },
+      text: "あと[h]{時間|じかん}で{大|おお}きな{台風|たいふう}が{来|く}る{予報|よほう}。{田|た}んぼの{稲|いね}はまだ{育|そだ}っているとちゅう。どうする？",
+      choices: [
+        { label: "{台風|たいふう}が{来|く}る{前|まえ}に{水|みず}の{量|りょう}や{水路|すいろ}を{見回|みまわ}っておき、{台風|たいふう}のあいだは{田|た}んぼに{行|い}かない", points: 3 },
+        { label: "とくに{何|なに}もしないで、{台風|たいふう}が{過|す}ぎるのを{待|ま}つ", points: 1 },
+        { label: "{台風|たいふう}のまっさいちゅうに、{田|た}んぼのようすを{見|み}に{行|い}く", points: 0 }
+      ],
+      explanation: "[h]{時間|じかん}あれば、{前|まえ}もって{見回|みまわ}りができる。{台風|たいふう}のあいだに{田|た}んぼや{用水路|ようすいろ}を{見|み}に{行|い}くのは、とても{危険|きけん}。{作物|さくもつ}より、まず{自分|じぶん}の{命|いのち}を{守|まも}るのが{農家|のうか}の{鉄則|てっそく}。",
+      phrase: { word: "{君子|くんし}{危|あや}うきに{近寄|ちかよ}らず", meaning: "かしこい{人|ひと}は、{危|あぶ}ないところには{自分|じぶん}から{近|ちか}づかないということ" }
+    },
+    {
+      heading: "お{米|こめ}をどこに{売|う}る？",
+      hard: true,
+      industry: "{第|だい}3{次|じ}{産業|さんぎょう}：{売|う}る",
+      vars: { kg: [600, 900, 1200], p: [300, 350, 400] },
+      text: "とれたお{米|こめ}は[kg]kg。{農協|のうきょう}に{出|だ}すと1kg[p]{円|えん}で{全部|ぜんぶ}{買|か}ってくれる。{道|みち}の{駅|えき}の{直売所|ちょくばいじょ}なら1kg[p+150]{円|えん}で{売|う}れるが、1{年|ねん}で{売|う}れるのは[kg/3]kgくらい。どう{売|う}る？",
+      choices: [
+        { label: "[kg/3]kgを{直売所|ちょくばいじょ}、のこりの[kg*2/3]kgを{農協|のうきょう}に{出|だ}す", points: 3 },
+        { label: "{全部|ぜんぶ}{農協|のうきょう}に{出|だ}す", points: 1 },
+        { label: "{全部|ぜんぶ}{直売所|ちょくばいじょ}で{売|う}る", points: 0 }
+      ],
+      explanation: "{全部|ぜんぶ}{農協|のうきょう}だと [kg] × [p] ＝ [kg*p]{円|えん}。{分|わ}けて{売|う}ると [kg/3] × [p+150] ＋ [kg*2/3] × [p] ＝ [kg/3*(p+150)+kg*2/3*p]{円|えん}で、[kg/3*150]{円|えん}{多|おお}い。{全部|ぜんぶ}{直売所|ちょくばいじょ}にすると、[kg*2/3]kgも{売|う}れ{残|のこ}ってしまう。",
+      phrase: { word: "{適材適所|てきざいてきしょ}", meaning: "その{人|ひと}やものに{合|あ}った{場所|ばしょ}で{生|い}かすこと" }
+    },
+    {
+      heading: "{小|ちい}さなお{米|こめ}の{使|つか}い{道|みち}",
+      industry: "{第|だい}6{次|じ}{産業化|さんぎょうか}：つくる×{加工|かこう}する×{売|う}る",
+      vars: { kg: [1000, 2000, 3000], r: [5, 10] },
+      text: "とれたお{米|こめ}[kg]kgのうち[r]%（[kg*r/100]kg）は、つぶが{小|ちい}さくて{袋|ふくろ}に{入|い}れて{売|う}れない。どうする？",
+      choices: [
+        { label: "{米粉|こめこ}にしてパン{屋|や}さんに{売|う}ったり、おせんべいにしたりする", points: 3 },
+        { label: "{家|いえ}で{食|た}べる{分|ぶん}にする", points: 1 },
+        { label: "{売|う}れないので{捨|す}てる", points: 0 }
+      ],
+      explanation: "{小|ちい}さなつぶでも、{粉|こな}にすればパンやおかしの{材料|ざいりょう}になる。{自分|じぶん}で{加工|かこう}して{売|う}れば、[kg*r/100]kgがむだにならず{売|う}り{上|あ}げになる。つくる（{第|だい}1{次|じ}）・{加工|かこう}する（{第|だい}2{次|じ}）・{売|う}る（{第|だい}3{次|じ}）をつなげる「{第|だい}6{次|じ}{産業化|さんぎょうか}」だね。",
+      phrase: { word: "{創意工夫|そういくふう}", meaning: "{新|あたら}しい{考|かんが}えや、よいやり{方|かた}を{自分|じぶん}で{考|かんが}え{出|だ}すこと" }
+    },
+
+    {
+      heading: "{新|あたら}しい{品種|ひんしゅ}をためす",
+      industry: "{第|だい}1{次|じ}{産業|さんぎょう}：お{米|こめ}をつくる",
+      vars: { f: [5, 8, 10] },
+      text: "{暑|あつ}さに{強|つよ}い、{新|あたら}しい{品種|ひんしゅ}の{稲|いね}があると{聞|き}いた。{田|た}んぼは[f]{枚|まい}。どうする？",
+      choices: [
+        { label: "まず1{枚|まい}だけで{育|そだ}ててみて、{記録|きろく}をとってくらべる", points: 3 },
+        { label: "ためさずに、いままでの{稲|いね}だけを{育|そだ}てる", points: 1 },
+        { label: "いきなり[f]{枚|まい}{全部|ぜんぶ}を{新|あたら}しい{品種|ひんしゅ}にする", points: 0 }
+      ],
+      explanation: "1{枚|まい}で{試|ため}せば、うまくいかなくても[f-1]{枚|まい}はいつもどおりとれる。うまくいったら、{少|すこ}しずつふやせばいい。ためさないままだと、{暑|あつ}い{夏|なつ}が{続|つづ}いたときに{困|こま}るかもしれない。",
+      phrase: { word: "{試行錯誤|しこうさくご}", meaning: "ためしては{失敗|しっぱい}し、またためして、よい{方法|ほうほう}を{見|み}つけていくこと" }
+    },
+    {
+      heading: "{農薬|のうやく}をへらしたお{米|こめ}づくり",
+      industry: "{第|だい}1{次|じ}{産業|さんぎょう}：お{米|こめ}をつくる",
+      vars: { d: [2, 3] },
+      text: "{農薬|のうやく}をできるだけ{使|つか}わないお{米|こめ}づくりを{始|はじ}めた。1{年目|ねんめ}は、とれたお{米|こめ}がいつもより[d]{割|わり}{少|すく}なかった。どうする？",
+      choices: [
+        { label: "{記録|きろく}をとって{工夫|くふう}しながら、{何年|なんねん}か{続|つづ}けてみる", points: 3 },
+        { label: "{来年|らいねん}どうするか、またそのときに{考|かんが}える", points: 1 },
+        { label: "1{年|ねん}でやめて、もう{二度|にど}とためさない", points: 0 }
+      ],
+      explanation: "10{割|わり}のうち[d]{割|わり}{減|へ}ると、とれる{量|りょう}は[10-d]{割|わり}になる。{土|つち}や{田|た}んぼの{生|い}きものが{育|そだ}つには{何年|なんねん}もかかるので、1{年|ねん}だけでは{結果|けっか}がわからない。{記録|きろく}をとって、{少|すこ}しずつ{工夫|くふう}することが{大切|たいせつ}。",
+      phrase: { word: "{石|いし}の{上|うえ}にも{三年|さんねん}", meaning: "つらくても、がまんして{続|つづ}ければ、いつかうまくいくということ" }
+    },
+
+    /* ---- ここから季節の問題（その季節のときだけ5問目に出る） ---- */
+    {
+      season: 0,
+      heading: "{田植|たう}えの{計画|けいかく}",
+      industry: "{第|だい}1{次|じ}{産業|さんぎょう}：お{米|こめ}をつくる",
+      vars: { a: [2, 3, 4], d: [3, 4, 5] },
+      text: "いよいよ{田植|たう}え。{田植|たう}え{機|き}は1{日|にち}に{田|た}んぼを[a]{枚|まい}{植|う}えられる。{田|た}んぼは[a*d]{枚|まい}ある。{全部|ぜんぶ}{植|う}えるのに{何日|なんにち}かかる？",
+      choices: [
+        { label: "[d]{日|にち}", points: 3 },
+        { label: "[d+2]{日|にち}", points: 1 },
+        { label: "[a*d]{日|にち}", points: 0 }
+      ],
+      explanation: "[a*d]{枚|まい} ÷ [a]{枚|まい} ＝ [d]{日|にち}。[d+2]{日|にち}は{雨|あめ}の{日|ひ}を{考|かんが}えた{予定|よてい}としてはありだけれど、{計算|けいさん}の{答|こた}えではない。[a*d]{日|にち}は、1{日|にち}1{枚|まい}だと{思|おも}ったときのまちがい。",
+      phrase: { word: "{千里|せんり}の{道|みち}も{一歩|いっぽ}から", meaning: "{大|おお}きなことも、{目|め}の{前|まえ}の{小|ちい}さなことから{始|はじ}まるということ" }
+    },
+    {
+      season: 1,
+      heading: "{夏|なつ}の{草取|くさと}り",
+      industry: "{第|だい}1{次|じ}{産業|さんぎょう}：お{米|こめ}をつくる",
+      vars: { m: [20, 30, 40] },
+      text: "{夏|なつ}は{田|た}んぼの{草|くさ}がどんどんのびる。{草|くさ}が{多|おお}いと{稲|いね}の{栄養|えいよう}をとられてしまう。どうする？",
+      choices: [
+        { label: "{毎朝|まいあさ}[m]{分|ぷん}ずつ、こまめに{草|くさ}を{取|と}る", points: 3 },
+        { label: "{夏|なつ}の{終|お}わりに、まとめて{取|と}る", points: 1 },
+        { label: "そのままにしておく", points: 0 }
+      ],
+      explanation: "{毎朝|まいあさ}[m]{分|ぷん}でも、30{日|にち}で[m*30]{分|ぷん}（[m*30/60]{時間|じかん}）になる。{草|くさ}が{小|ちい}さいうちに{取|と}ると、{楽|らく}で{稲|いね}もよく{育|そだ}つ。まとめて{取|と}るころには、{稲|いね}がもう{栄養|えいよう}をとられている。",
+      phrase: { word: "{継続|けいぞく}は{力|ちから}なり", meaning: "{小|ちい}さなことでも{続|つづ}けていれば、{大|おお}きな{力|ちから}になるということ" }
+    },
+    {
+      season: 2,
+      heading: "{稲刈|いねか}りと{袋|ふくろ}づめ",
+      industry: "{第|だい}1{次|じ}{産業|さんぎょう}：お{米|こめ}をつくる",
+      vars: { f: [2, 3, 4], k: [300, 450, 600] },
+      text: "{実|みの}りの{秋|あき}。{田|た}んぼ1{枚|まい}から[k]kgのお{米|こめ}がとれた。{田|た}んぼは[f]{枚|まい}。30kg{入|い}りの{袋|ふくろ}に{入|い}れるには、{袋|ふくろ}はいくついる？",
+      choices: [
+        { label: "[f*k/30]{袋|ふくろ}", points: 3 },
+        { label: "[f*k/30+5]{袋|ふくろ}", points: 1 },
+        { label: "[f*k]{袋|ふくろ}", points: 0 }
+      ],
+      explanation: "{全部|ぜんぶ}で [k]kg × [f]{枚|まい} ＝ [f*k]kg。[f*k] ÷ 30 ＝ [f*k/30]{袋|ふくろ}。5{袋|ふくろ}よぶんに{買|か}うのは{悪|わる}くないけれど、{計算|けいさん}どおりならぴったり[f*k/30]{袋|ふくろ}。[f*k]{袋|ふくろ}は、kgの{数|かず}と{袋|ふくろ}の{数|かず}をとりちがえている。",
+      phrase: { word: "{実|みの}るほど{頭|こうべ}を{垂|た}れる{稲穂|いなほ}かな", meaning: "{中身|なかみ}のある{立派|りっぱ}な{人|ひと}ほど、いばらずにひかえめだということ" }
+    },
+    {
+      season: 3,
+      heading: "{冬|ふゆ}の{田|た}んぼ",
+      industry: "{第|だい}1{次|じ}{産業|さんぎょう}：お{米|こめ}をつくる",
+      vars: { y: [2, 3, 5] },
+      text: "{冬|ふゆ}の{田|た}んぼには{稲|いね}がない。{来年|らいねん}もおいしいお{米|こめ}をつくるために、{冬|ふゆ}のあいだに{何|なに}をする？（{農家|のうか}になって[y]{年目|ねんめ}）",
+      choices: [
+        { label: "わらを{田|た}んぼにまぜて{土|つち}づくりをし、{機械|きかい}の{手入|てい}れと{来年|らいねん}の{計画|けいかく}をする", points: 3 },
+        { label: "{春|はる}まで{休|やす}む", points: 1 },
+        { label: "もう{使|つか}わないので{機械|きかい}を{売|う}る", points: 0 }
+      ],
+      explanation: "{稲|いね}をとったあとのわらは、{田|た}んぼの{土|つち}の{栄養|えいよう}になる。{機械|きかい}の{手入|てい}れや、[y]{年|ねん}{分|ぶん}の{記録|きろく}を{見|み}ての{計画|けいかく}づくりも、{冬|ふゆ}の{大切|たいせつ}な{仕事|しごと}。{休|やす}むことも{大事|だいじ}だけれど、{準備|じゅんび}が{来年|らいねん}のお{米|こめ}を{決|き}める。",
+      phrase: { word: "{一年|いちねん}の{計|けい}は{元旦|がんたん}にあり", meaning: "{何|なに}ごとも、{始|はじ}めにしっかり{計画|けいかく}を{立|た}てることが{大切|たいせつ}だということ" }
+    }
+  ],
+  results: [
+    { minPoints: 13, message: "すごい！ まちでいちばんの{農家|のうか}！" },
+    { minPoints: 8,  message: "なかなかの{農家|のうか}！" },
+    { minPoints: 0,  message: "これからが{楽|たの}しみな{農家|のうか}！" }
+  ],
+  // 3点をとるたびに、まちの人口がふえる数
+  peoplePerCorrect: 10,
+  // 「今日のおつかい」で3点をとったときにふえる数（1日1回）
+  peopleDailyBonus: 30
+};
+/* ===== ここまで問題データ ===== */
+</script>
+
+<style>
+  :root {
+    --bg: #fdf8f0;
+    --card: #ffffff;
+    --text: #2b2620;
+    --muted: #6b6258;
+    --accent: #d9622b;
+    --accent-text: #ffffff;
+    --line: #e8dfd2;
+    --good: #2f8a4c;
+    --soso: #b7860b;
+    --bad: #b5453a;
+    --phrase-bg: #fff3d6;
+    --phrase-line: #e9b949;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1f1b17;
+      --card: #2a2520;
+      --text: #f2ece4;
+      --muted: #b5aa9c;
+      --accent: #f07f45;
+      --accent-text: #1f1b17;
+      --line: #423a32;
+      --good: #6cc78a;
+      --soso: #e3b84a;
+      --bad: #ee7d72;
+      --phrase-bg: #3a3020;
+      --phrase-line: #a8822f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+    font-size: 18px;
+    line-height: 1.9;
+  }
+  main { max-width: 640px; margin: 0 auto; padding: 16px 16px 48px; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .topbar a { color: var(--muted); font-size: 15px; }
+  .ruby-toggle {
+    min-height: 44px; padding: 0 14px; border-radius: 22px;
+    border: 1px solid var(--line); background: var(--card); color: var(--text);
+    font: inherit; font-size: 15px; cursor: pointer;
+  }
+  body.no-ruby rt { display: none; }
+  rt { font-size: 0.55em; }
+  h1 { font-size: 26px; line-height: 1.6; margin: 8px 0 4px; }
+  h2 { font-size: 20px; margin: 0 0 8px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+  .muted { color: var(--muted); }
+  .btn {
+    display: block; width: 100%; min-height: 56px; margin: 0 0 10px;
+    padding: 12px 16px; border-radius: 14px; border: 2px solid var(--line);
+    background: var(--card); color: var(--text); font: inherit; text-align: left;
+    cursor: pointer; line-height: 1.8;
+  }
+  .btn:hover:not(:disabled) { border-color: var(--accent); }
+  .btn:disabled { cursor: default; opacity: 0.55; }
+  .btn.chosen { opacity: 1; border-color: var(--accent); border-width: 3px; }
+  .btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); text-align: center; font-weight: bold; }
+  .btn.secondary { text-align: center; }
+  .progress-text { font-size: 15px; color: var(--muted); }
+  .progress { height: 10px; background: var(--line); border-radius: 5px; overflow: hidden; margin: 4px 0 16px; }
+  .progress > div { height: 100%; background: var(--accent); transition: width .3s; }
+  .industry { display: inline-block; font-size: 14px; padding: 2px 12px; border-radius: 12px; background: var(--phrase-bg); border: 1px solid var(--phrase-line); margin-bottom: 8px; }
+  .hard { display: inline-block; font-size: 14px; padding: 2px 12px; border-radius: 12px; background: var(--bad); color: var(--card); font-weight: bold; margin-bottom: 8px; }
+  .feedback { font-size: 22px; font-weight: bold; margin: 0 0 6px; }
+  .p3 { color: var(--good); } .p1 { color: var(--soso); } .p0 { color: var(--bad); }
+  .phrase { background: var(--phrase-bg); border-left: 6px solid var(--phrase-line); border-radius: 10px; padding: 12px 14px; margin: 14px 0 4px; }
+  .phrase .label { font-size: 14px; color: var(--muted); }
+  .phrase .word { font-size: 22px; font-weight: bold; }
+  .score { font-size: 40px; font-weight: bold; color: var(--accent); margin: 0; }
+  .town-news p { margin: 4px 0; }
+  .town-news b { color: var(--accent); }
+  .recap h3 { font-size: 18px; margin: 0 0 4px; }
+  .recap p { margin: 4px 0; }
+  .error { border-color: var(--bad); color: var(--bad); }
+</style>
+</head>
+<body>
+<main>
+  <div class="topbar">
+    <a href="index.html">← まちへ{戻|もど}る</a>
+    <button class="ruby-toggle" id="rubyToggle" type="button">ふりがな：あり</button>
+  </div>
+  <div id="app"></div>
+</main>
+
+<script>
+(function () {
+  const app = document.getElementById("app");
+  const rubyToggle = document.getElementById("rubyToggle");
+  const SEASON_ICONS = ["🌸", "☀️", "🍁", "⛄"];
+
+  // ---- ふりがな ----
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+  function rich(s) {
+    return escapeHtml(s).replace(/\{([^{}|]+)\|([^{}|]+)\}/g, "<ruby>$1<rt>$2</rt></ruby>");
+  }
+  function plain(s) { return String(s || "").replace(/\{([^{}|]+)\|[^{}|]+\}/g, "$1"); }
+  document.querySelectorAll(".topbar a").forEach(a => { a.innerHTML = rich(a.textContent); });
+  rubyToggle.addEventListener("click", () => {
+    const off = document.body.classList.toggle("no-ruby");
+    rubyToggle.textContent = off ? "ふりがな：なし" : "ふりがな：あり";
+  });
+
+  // ---- 数字が毎回変わる問題 ----
+  function calc(expr, vars) {
+    if (!/^[\w\s+\-*/().]+$/.test(expr)) throw new Error("[" + expr + "] に使えない文字があります。");
+    (expr.match(/[A-Za-z_]\w*/g) || []).forEach(id => {
+      if (!(id in vars)) throw new Error("[" + expr + "] の「" + id + "」が vars にありません。");
+    });
+    const names = Object.keys(vars);
+    const n = Function(...names, '"use strict"; return (' + expr + ");")(...names.map(k => vars[k]));
+    if (typeof n !== "number" || !isFinite(n)) throw new Error("[" + expr + "] の計算ができません。");
+    return n;
+  }
+  function fmt(n) { return (Math.round(n * 10) / 10).toLocaleString("ja-JP"); }
+  function fill(str, vars) { return String(str || "").replace(/\[([^\[\]]+)\]/g, (_, e) => fmt(calc(e, vars))); }
+  function pickVars(q, rnd) {
+    const v = {};
+    Object.keys(q.vars || {}).forEach(k => { const arr = q.vars[k]; v[k] = arr[Math.floor(rnd() * arr.length)]; });
+    return v;
+  }
+  function makeQuestion(q, rnd) {
+    const v = pickVars(q, rnd);
+    return {
+      src: q,
+      heading: q.heading, industry: q.industry, phrase: q.phrase, hard: q.hard,
+      text: fill(q.text, v),
+      explanation: fill(q.explanation, v),
+      choices: q.choices.map(c => ({ label: fill(c.label, v), points: c.points }))
+    };
+  }
+  // 日付から決まる乱数（今日のおつかいで、同じ日は同じ問題になる）
+  function seededRandom(seedText) {
+    let h = 2166136261;
+    for (let i = 0; i < seedText.length; i++) { h ^= seedText.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return function () {
+      h += 0x6D2B79F5;
+      let t = h;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function today() {
+    const d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+
+  // ---- データの確認 ----
+  function showError(message) {
+    app.innerHTML = '<div class="card error"><h2>問題データの書き方に誤りがあります</h2><p>' + escapeHtml(message) + "</p></div>";
+  }
+  function allVarCombos(q) {
+    let combos = [{}];
+    Object.keys(q.vars || {}).forEach(k => {
+      const arr = q.vars[k];
+      if (!Array.isArray(arr) || arr.length === 0) throw new Error("vars の「" + k + "」に数がありません。");
+      const next = [];
+      combos.forEach(c => arr.forEach(val => next.push(Object.assign({}, c, { [k]: val }))));
+      combos = next;
+    });
+    return combos;
+  }
+  function checkData() {
+    if (typeof GAME_DATA === "undefined") {
+      return "データ全体が読み込めませんでした。「\"」「,」「{ }」「[ ]」が消えていないか確認してください。";
+    }
+    const qs = GAME_DATA.questions;
+    if (!Array.isArray(qs) || qs.length === 0) return "questions に問題が1つもありません。";
+    for (let i = 0; i < qs.length; i++) {
+      const q = qs[i], n = (i + 1) + "問目：";
+      if (!q || !q.text) return n + "text（問題文）がありません。";
+      if (!Array.isArray(q.choices) || q.choices.length !== 3) return n + "選択肢は3つにしてください。";
+      const pts = q.choices.map(c => c && c.points).sort().join(",");
+      if (pts !== "0,1,3") return n + "points は 3・1・0 を1つずつにしてください。";
+      if (q.choices.some(c => !c.label)) return n + "label（選択肢の文）が空のものがあります。";
+      if (!q.explanation) return n + "explanation（解説）がありません。";
+      try {
+        for (const v of allVarCombos(q)) {
+          fill(q.text, v); fill(q.explanation, v);
+          const labels = q.choices.map(c => fill(c.label, v));
+          if (new Set(labels).size !== 3) {
+            return n + "数の組み合わせによって、選択肢が同じになってしまいます（" + labels.map(plain).join("／") + "）。";
+          }
+        }
+      } catch (e) { return n + e.message; }
+    }
+    if (!Array.isArray(GAME_DATA.results) || GAME_DATA.results.length === 0) return "results（点数のひとこと）がありません。";
+    return null;
+  }
+
+  const err = checkData();
+  if (err) { showError(err); return; }
+
+  const D = GAME_DATA;
+  const SEASONS = D.seasons || ["春", "夏", "秋", "冬"];
+  const isDaily = new URLSearchParams(location.search).get("mode") === "daily";
+  let playQs = [];    // この回に出す問題
+  let answers = [];   // 各問で選んだ選択肢
+  let newWords = [];  // この回で新しく覚えたことば
+  let current = 0;
+
+  // ---- まちの記録（この端末のブラウザの中だけに保存） ----
+  const STORE_KEY = "machi-game-v1";
+  function loadStore() {
+    try {
+      const s = JSON.parse(localStorage.getItem(STORE_KEY)) || {};
+      s.words = s.words || {};
+      s.catalog = s.catalog || {};
+      s.people = s.people || 0;
+      s.turn = s.turn || 0;
+      return s;
+    } catch (e) { return { words: {}, catalog: {}, people: 0, turn: 0 }; }
+  }
+  function saveStore(s) {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch (e) { /* 保存できない環境では記録しない */ }
+  }
+  // このゲームで覚えられることばの一覧を、まちの「ことば図鑑」のために登録する
+  function registerCatalog() {
+    if (!D.gameId) return;
+    const s = loadStore();
+    s.catalog[D.gameId] = {
+      title: D.title,
+      words: D.questions.filter(q => q.phrase && q.phrase.word).map(q => ({ word: q.phrase.word, meaning: q.phrase.meaning || "" }))
+    };
+    saveStore(s);
+  }
+  function learnWord(q) {
+    if (!D.gameId || !q.phrase || !q.phrase.word) return;
+    const key = plain(q.phrase.word);
+    const s = loadStore();
+    if (s.words[key]) return;
+    s.words[key] = { gameId: D.gameId, word: q.phrase.word, meaning: q.phrase.meaning || "" };
+    saveStore(s);
+    newWords.push(q.phrase);
+  }
+  function seasonIndex() { return loadStore().turn % 4; }
+  registerCatalog();
+
+  function shuffle(arr, rnd) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+  function best(q) { return q.choices.find(c => c.points === 3); }
+  function phraseHtml(p) {
+    if (!p || !p.word) return "";
+    return '<div class="phrase"><div class="label">きょうのことば</div><div class="word">' + rich(p.word) +
+      "</div><div>" + rich(p.meaning || "") + "</div></div>";
+  }
+  function top() { window.scrollTo(0, 0); }
+  function seasonLabel(i) { return SEASON_ICONS[i] + " " + rich(SEASONS[i]); }
+
+  // この回の問題をえらぶ
+  function preparePlay() {
+    if (isDaily) {
+      const rnd = seededRandom(today() + ":" + D.gameId);
+      const q = D.questions[Math.floor(rnd() * D.questions.length)];
+      playQs = [makeQuestion(q, rnd)];
+      playQs.rnd = rnd;
+    } else {
+      // いつも出る問題の山から、毎回くじで pickCount 問（ふつうは4問）＋季節の問題
+      const si = seasonIndex();
+      const core = shuffle(D.questions.filter(q => typeof q.season !== "number"), Math.random).slice(0, D.pickCount || 4);
+      const qs = core.concat(D.questions.filter(q => q.season === si));
+      playQs = qs.map(q => makeQuestion(q, Math.random));
+      playQs.rnd = Math.random;
+    }
+  }
+
+  // ---- 画面B：はじめ ----
+  function showStart() {
+    document.title = plain(D.title);
+    const s = loadStore();
+    let info;
+    if (isDaily) {
+      const done = s.dailyDone === today();
+      info =
+        "<h1>" + rich("{今日|きょう}のおつかい") + "</h1>" +
+        "<p>" + rich("{今日|きょう}だけの1{問|もん}。3{点|てん}をとると、まちの{人口|じんこう}が") + "<b>" + (D.peopleDailyBonus || 0) + rich("{人|にん}") + "</b>" + rich("ふえるよ（1{日|にち}1{回|かい}）。") + "</p>" +
+        (done ? '<p class="muted">' + rich("{今日|きょう}のおつかいは、もうやったよ。{遊|あそ}べるけれど、{人口|じんこう}はふえないよ。また{明日|あした}！") + "</p>" : "");
+    } else {
+      const si = seasonIndex();
+      info =
+        "<h1>" + rich(D.title) + "</h1>" +
+        "<p>" + rich(D.howToPlay) + "</p>" +
+        '<p class="muted">' + rich("いまのまちの{季節|きせつ}：") + seasonLabel(si) + "<br>" +
+        rich("3{点|てん}をとるたびに、まちの{人口|じんこう}が" + (D.peoplePerCorrect || 0) + "{人|にん}ふえるよ。") + "</p>";
+    }
+    app.innerHTML =
+      '<div class="card">' +
+        '<p class="muted">' + rich(D.shopName || "") + "</p>" +
+        info +
+      "</div>" +
+      '<button class="btn primary" id="startBtn" type="button">はじめる</button>';
+    document.getElementById("startBtn").onclick = () => {
+      preparePlay();
+      answers = []; newWords = []; current = 0;
+      showQuestion();
+    };
+    top();
+  }
+
+  // ---- 画面C：問題 ----
+  function showQuestion() {
+    const q = playQs[current];
+    const choices = shuffle(q.choices, playQs.rnd);
+    const isLast = current === playQs.length - 1;
+    app.innerHTML =
+      '<div class="progress-text">' + rich((current + 1) + " / " + playQs.length + " {問目|もんめ}") + "</div>" +
+      '<div class="progress"><div style="width:' + (current / playQs.length * 100) + '%"></div></div>' +
+      '<div class="card">' +
+        (q.industry ? '<div class="industry">' + rich(q.industry) + "</div>" : "") +
+        (q.hard ? ' <div class="hard">' + rich("★むずかしい") + "</div>" : "") +
+        "<h2>" + rich(q.heading || "") + "</h2>" +
+        "<p>" + rich(q.text) + "</p>" +
+      "</div>" +
+      '<div id="choices">' +
+        choices.map((c, i) => '<button class="btn" type="button" data-i="' + i + '">' + rich(c.label) + "</button>").join("") +
+      "</div>" +
+      '<div id="feedback"></div>';
+
+    app.querySelectorAll("#choices .btn").forEach(btn => {
+      btn.onclick = () => {
+        const chosen = choices[Number(btn.dataset.i)];
+        answers[current] = chosen;
+        if (chosen.points === 3) learnWord(q);
+        app.querySelectorAll("#choices .btn").forEach(b => { b.disabled = true; });
+        btn.classList.add("chosen");
+        app.querySelector(".progress > div").style.width = ((current + 1) / playQs.length * 100) + "%";
+        const b = best(q);
+        const fb = D.feedback || {};
+        document.getElementById("feedback").innerHTML =
+          '<div class="card">' +
+            '<p class="feedback p' + chosen.points + '">' + rich(fb[chosen.points] || chosen.points + "点") + "</p>" +
+            (chosen.points !== 3 ? "<p><b>" + rich("いちばんよい{答|こた}え：") + "</b>" + rich(b.label) + "</p>" : "") +
+            "<p>" + rich(q.explanation) + "</p>" +
+            phraseHtml(q.phrase) +
+          "</div>" +
+          '<button class="btn primary" id="nextBtn" type="button"></button>';
+        const next = document.getElementById("nextBtn");
+        next.innerHTML = rich(isLast ? "{結果|けっか}を{見|み}る" : "つぎへ");
+        next.onclick = () => { if (isLast) { showResult(); } else { current++; showQuestion(); } };
+        next.scrollIntoView({ behavior: "smooth", block: "end" });
+      };
+    });
+    top();
+  }
+
+  // まちの記録を進める（人口・季節・今日のおつかい）
+  function updateTown(correctCount) {
+    const s = loadStore();
+    const news = [];
+    if (isDaily) {
+      const firstToday = s.dailyDone !== today();
+      s.dailyDone = today();
+      if (firstToday && correctCount > 0) {
+        s.people += D.peopleDailyBonus || 0;
+        news.push(rich("まちの{人口|じんこう}が") + "<b>" + (D.peopleDailyBonus || 0) + "</b>" + rich("{人|にん}ふえた！"));
+      } else if (!firstToday) {
+        news.push(rich("{今日|きょう}のおつかいは2{回目|かいめ}なので、{人口|じんこう}はふえないよ。"));
+      }
+    } else {
+      const add = correctCount * (D.peoplePerCorrect || 0);
+      s.people += add;
+      if (add > 0) news.push(rich("まちの{人口|じんこう}が") + "<b>" + add + "</b>" + rich("{人|にん}ふえた！"));
+      s.turn += 1;
+      news.push(rich("まちの{季節|きせつ}が") + " " + seasonLabel(s.turn % 4) + " " + rich("になった。つぎは{季節|きせつ}の{問題|もんだい}もかわるよ。"));
+    }
+    news.push(rich("いまの{人口|じんこう}：") + "<b>" + s.people.toLocaleString("ja-JP") + "</b>" + rich("{人|にん}"));
+    saveStore(s);
+    return news;
+  }
+
+  // ---- 画面D：結果と解説 ----
+  function showResult() {
+    const total = answers.reduce((s, c) => s + c.points, 0);
+    const correct = answers.filter(c => c.points === 3).length;
+    const max = playQs.length * 3;
+    const news = updateTown(correct);
+    let html =
+      '<div class="card" style="text-align:center">' +
+        '<p class="muted">' + rich("{結果|けっか}") + "</p>" +
+        '<p class="score">' + total + " / " + max + rich("{点|てん}") + "</p>";
+    if (!isDaily) {
+      const msg = D.results.slice().sort((a, b) => b.minPoints - a.minPoints).find(r => total >= r.minPoints);
+      html += "<h2>" + rich(msg ? msg.message : "") + "</h2>";
+    }
+    html += "</div>";
+    html += '<div class="card town-news"><h2>' + rich("まちのニュース") + "</h2>" + news.map(n => "<p>" + n + "</p>").join("") + "</div>";
+    if (newWords.length) {
+      html +=
+        '<div class="card">' +
+          "<h2>" + rich("{新|あたら}しく{覚|おぼ}えたことば") + "</h2>" +
+          newWords.map(p => phraseHtml(p)).join("") +
+          '<p style="margin-top:12px">' + rich("まちが{育|そだ}ったかもしれないよ。まちに{戻|もど}って{見|み}てみよう！") + "</p>" +
+        "</div>";
+    }
+    playQs.forEach((q, i) => {
+      const c = answers[i];
+      html +=
+        '<div class="card recap">' +
+          "<h3>" + (i + 1) + ". " + rich(q.heading || "") + "</h3>" +
+          "<p>" + rich("あなたの{答|こた}え：") + rich(c.label) + ' <b class="p' + c.points + '">（' + c.points + rich("{点|てん}") + "）</b></p>" +
+          (c.points !== 3 ? "<p>" + rich("いちばんよい{答|こた}え：") + rich(best(q).label) + "</p>" : "") +
+          '<p class="muted">' + rich(q.explanation) + "</p>" +
+          phraseHtml(q.phrase) +
+        "</div>";
+    });
+    html +=
+      (isDaily ? "" : '<button class="btn primary" id="againBtn" type="button">' + rich("もう{一度|いちど}あそぶ（{数字|すうじ}がかわるよ）") + "</button>") +
+      '<a class="btn secondary" href="index.html" style="text-decoration:none">' + rich("まちへ{戻|もど}る") + "</a>";
+    app.innerHTML = html;
+    if (!isDaily) document.getElementById("againBtn").onclick = showStart;
+    top();
+  }
+
+  showStart();
+})();
+</script>
+</body>
+</html>

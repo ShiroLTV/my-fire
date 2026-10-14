@@ -1,0 +1,1132 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>まちのインフラ</title>
+
+<script>
+/* ===== ここからことばのデータ（文章はここだけ直してください） =====
+   ・STOCK が「ストック問題」のもとになることばの一覧です。ここから毎回くじで問題がつくられます
+   ・t：ジャンル。GAME_DATA.genres に書いた名前（water, sewer, power, gas, road, comm, bousai）のどれか
+   ・w：ことば。{漢字|かんじ} と書くと、漢字の上にふりがなが出ます
+   ・m：説明（子ども向けの言い方で、ふりがなはつけない）
+   ・q, a, x：「なぜ？クイズ」（なくてもよい。書くときは3つともそろえる）
+       q：問題文　a：正しい答え　x：["まちがいの答え", "まちがいの答え"]
+   ・note：答えたあとに出る「なるほど解説」（なくてもよい。ふりがなはつけない）
+   ・hard: true と書くと「★むずかしい」の印がつきます
+   ・same：説明がにていることば同士に同じ名前をつけると、同じ問題の選択肢にならびません
+   ・まちがいの選択肢は、同じジャンルのことばから選ばれます（1つのジャンルに3語以上必要）
+*/
+const GAME_DATA = {
+  gameId: "infra",   // まちの地図の駅と同じ id（変えないでください）
+  title: "まちのインフラ",
+  shopName: "インフラ{管理|かんり}センター",
+  // 遊び方の説明の前には「（まちの名前）のくらしをささえる、」が自動でつきます
+  howToPlay: "{水道|すいどう}・{電気|でんき}・ガス・{道路|どうろ}・{通信|つうしん}などの{問題|もんだい}が、{毎回|まいかい}くじで5{問|もん}{出|で}るよ。{正解|せいかい}したことばは「{覚|おぼ}えたことば」になって、まちが{育|そだ}つよ。",
+  count: 5,
+  // ジャンルの名前（絵は、下の <svg class="sprite"> の gi-○○ と、まちの断面図にある）
+  genres: {
+    water:  "{水道|すいどう}",
+    sewer:  "{下水|げすい}",
+    power:  "{電気|でんき}",
+    gas:    "ガス",
+    road:   "{道路|どうろ}・{橋|はし}",
+    comm:   "{通信|つうしん}",
+    bousai: "くらしと{防災|ぼうさい}"
+  },
+  feedback: {
+    3: "3点！ {正解|せいかい}！",
+    0: "0点 ざんねん"
+  },
+  results: [
+    { minPoints: 13, message: "すごい！ インフラ{博士|はかせ}！" },
+    { minPoints: 8,  message: "なかなかのまちの{守|まも}り{手|て}！" },
+    { minPoints: 0,  message: "これからどんどん{覚|おぼ}えよう！" }
+  ],
+  peoplePerCorrect: 10,
+  peopleDailyBonus: 30
+};
+
+const STOCK = [
+  /* ---- 💧 水道 ---- */
+  { t: "water", w: "{浄水場|じょうすいじょう}", m: "川やダムからとった水をきれいにして、飲める水にする施設",
+    q: "浄水場で水をきれいにする順番として、正しいのは？", a: "沈でん → ろ過 → 消毒", x: ["消毒 → 沈でん → ろ過", "ろ過 → 消毒 → 沈でん"],
+    note: "薬を入れてにごりを固めて底に沈め（沈でん）、砂の層でこして（ろ過）、最後に塩素で消毒してから送り出すよ。" },
+  { t: "water", w: "{取水口|しゅすいこう}", m: "川やダムから、水道に使う水を取り入れる入り口" },
+  { t: "water", w: "ダム", m: "川の水をせき止めてためておき、水不足や洪水にそなえる施設" },
+  { t: "water", w: "{水源林|すいげんりん}", m: "雨水を土にたくわえて、川へ少しずつ水を流してくれる森", note: "「緑のダム」ともよばれるよ。森の土はスポンジのように水をたくわえるんだ。" },
+  { t: "water", w: "{沈|ちん}でん", m: "水を静かにためて、にごりのもとを底に沈めること", same: "jousui" },
+  { t: "water", w: "ろ{過|か}", m: "砂や細かい膜の層に水を通して、小さなよごれをこしとること", same: "jousui" },
+  { t: "water", w: "{塩素|えんそ}{消毒|しょうどく}", m: "水に塩素を入れて、病気のもとになる細菌をやっつけること", same: "jousui",
+    q: "蛇口から出る水道水にも、ほんの少し塩素が残るようにしてあるのはなぜ？", a: "家に届くまでのあいだに、細菌がふえないようにするため", x: ["水の味をあまくするため", "水道管がさびないようにするため"],
+    note: "蛇口の水にも決まった量より多くの塩素が残っていなければならない、という決まりがあるよ。" },
+  { t: "water", w: "{配水池|はいすいち}", m: "きれいにした水をためておき、まちへ送り出すための池やタンク",
+    q: "配水池や給水塔が、高い場所につくられることが多いのはなぜ？", a: "高いところから低いところへ流れる力で、水を家まで送れるから", x: ["高いところのほうが水がくさりにくいから", "鳥に水を飲まれないようにするため"],
+    note: "ポンプの電気を使わなくても、水が自然に流れていくように工夫しているよ。" },
+  { t: "water", w: "{水道管|すいどうかん}", m: "浄水場から家まで、地面の下を通って水を運ぶ管",
+    q: "冬の寒い夜、外にある水道管にタオルや保温材をまくのはなぜ？", a: "中の水がこおって、管が破れるのを防ぐため", x: ["水をあたたかいお湯にするため", "管を目立たせて、ぶつからないようにするため"],
+    note: "水はこおると体積が1割ほどふえるので、管が内側からおされて破れることがあるよ。" },
+  { t: "water", w: "{水道|すいどう}メーター", m: "家で使った水の量をはかる道具",
+    q: "家じゅうの蛇口をしめているのに、水道メーターの小さな羽根（パイロット）が回っていたら、何がうたがわれる？", a: "どこかで水がもれている", x: ["メーターが新品である", "水がとてもきれいになっている"],
+    note: "見えないところの水もれは、水道メーターを見ると見つけられるよ。" },
+  { t: "water", w: "{断水|だんすい}", m: "工事や事故、災害などで、水道の水が止まること" },
+  { t: "water", w: "{給水車|きゅうすいしゃ}", m: "水が止まったときに、水を運んできて配ってくれる車" },
+  { t: "water", w: "{漏水|ろうすい}{調査|ちょうさ}", m: "地面の下の水道管から、水がもれていないかを調べること",
+    q: "水道管の水もれをさがす調査を、夜おそくにすることが多いのはなぜ？", a: "車や人の音が少なく、水がもれる小さな音を聞きとりやすいから", x: ["夜のほうが、水道管に水がたくさん流れるから", "夜は水がこおって、もれた場所が見つけやすいから"],
+    note: "「音聴棒」という棒を地面や管に当てて、水がもれる「シャー」という音を聞きわけるよ。" },
+  { t: "water", w: "{水道|すいどう}{料金|りょうきん}", m: "使った水の量に合わせてはらうお金",
+    q: "水道料金は、おもに何に使われている？", a: "水をきれいにしたり、古い水道管を取りかえたりする費用", x: ["雨をふらせるための費用", "川の魚を育てるための費用"],
+    note: "水道は、使う人がはらう料金で支えられている。人口がへると、1人あたりの負担が大きくなるのが課題なんだ。" },
+  { t: "water", w: "{貯水率|ちょすいりつ}", m: "ダムにためられる量のうち、今どれくらい水がたまっているかの割合" },
+
+  /* ---- 🚽 下水 ---- */
+  { t: "sewer", w: "{下水道|げすいどう}", m: "家や工場で使ったよごれた水や雨水を、集めて流すしくみ" },
+  { t: "sewer", w: "{下水|げすい}{処理場|しょりじょう}", m: "集めたよごれた水をきれいにして、川や海にもどす施設",
+    q: "下水処理場できれいにした水は、最後にどこへ行く？", a: "川や海に流される", x: ["そのまま家の蛇口にもどされる", "地下のタンクに全部ためておかれる"],
+    note: "一部は、トイレを流す水や公園の小川などにも使われているよ。" },
+  { t: "sewer", w: "{微生物|びせいぶつ}", m: "目に見えないほど小さな生き物。下水処理場では、水のよごれを食べてくれる",
+    q: "下水処理場で、微生物が元気によごれを食べられるように、水に送りこんでいるものは？", a: "空気", x: ["塩", "砂糖"],
+    note: "空気を送りこむと微生物がよく働く。よごれを食べた微生物のかたまりは、沈めて水と分けるよ。" },
+  { t: "sewer", w: "マンホール", m: "地下の下水管などを点検・そうじするために、人が出入りする穴",
+    q: "マンホールのふたが丸い形をしている、いちばんの理由は？", a: "どの向きにしても、ふたが穴の中に落ちないから", x: ["車が通るときの音を小さくするため", "雨水を集めやすくするため"],
+    note: "四角いふただと、ななめにしたときに対角線の向きから穴に落ちてしまうことがあるよ。" },
+  { t: "sewer", w: "{雨水管|うすいかん}", m: "雨水だけを集めて、川などに流す管" },
+  { t: "sewer", w: "{分流式|ぶんりゅうしき}", m: "よごれた水と雨水を、別々の管で流す下水のしくみ" },
+  { t: "sewer", w: "{合流式|ごうりゅうしき}", m: "よごれた水と雨水を、1本の管でいっしょに流す下水のしくみ", hard: true,
+    q: "合流式の下水道で、大雨のときに困ることは？", a: "処理しきれない水が、よごれをふくんだまま川や海へ流れ出ることがある", x: ["下水管の中の水がすべてこおってしまう", "雨水だけが家の蛇口から出てくる"],
+    note: "古くからある都市に多いしくみ。今は、新しくつくるときは分流式が基本になっているよ。" },
+  { t: "sewer", w: "{下水管|げすいかん}のつまり", m: "油や紙などが下水管にたまって、水が流れなくなること",
+    q: "てんぷら油の残りを、台所の流しに捨ててはいけないのはなぜ？", a: "下水管の中で冷えて固まり、管をつまらせるから", x: ["油が水をあたためてしまうから", "油が下水管をとかしてしまうから"],
+    note: "紙でふき取ったり、固めたりしてから、ごみとして出そう。" },
+  { t: "sewer", w: "トイレットペーパー", m: "水にぬれるとすぐにほぐれて、管をつまらせにくい紙",
+    q: "ティッシュペーパーをトイレに流してはいけないのはなぜ？", a: "水にほぐれにくく、管をつまらせることがあるから", x: ["水にとけすぎて、あわが出るから", "トイレの水の色が変わるから"],
+    note: "ティッシュは、ぬれても破れにくいように作られている。だからトイレには向かないんだ。" },
+  { t: "sewer", w: "{浄化槽|じょうかそう}", m: "下水道が来ていない家で、よごれた水をきれいにするために家ごとに置く装置" },
+  { t: "sewer", w: "{汚泥|おでい}", m: "下水をきれいにするときに出る、どろのようなもの", note: "燃やして量をへらしたり、肥料やセメントの材料にしたりして、むだなく使っているよ。" },
+  { t: "sewer", w: "{内水|ないすい}{氾濫|はんらん}", m: "大雨で下水管や水路が雨水を流しきれず、まちの中に水があふれること", hard: true,
+    note: "川からあふれるのではなく、まちの中からあふれる水害。地下や低い道路は特に気をつけよう。" },
+  { t: "sewer", w: "{雨水|うすい}ます", m: "道路のはしや家のまわりにある、雨水を集めて管に流す入り口",
+    q: "道路のはしにある雨水ますのふたの上に、物を置いたり落ち葉をためたりしてはいけないのはなぜ？", a: "雨水が流れこめず、道路が水びたしになるから", x: ["ふたの色があせてしまうから", "車がスピードを出しすぎるから"],
+    note: "大雨の前に、家のまわりの雨水ますに落ち葉やごみがつまっていないか見てみよう。" },
+  { t: "sewer", w: "{道路|どうろ}{陥没|かんぼつ}", m: "地面の下に空洞ができて、道路に急に穴があくこと", hard: true,
+    q: "道路に急に穴があく「道路陥没」の原因として多いのは？", a: "地下の古い下水管がこわれ、まわりの土が管の中に流れこむこと", x: ["モグラが地下に大きなトンネルをほること", "雨水ますのふたが小さすぎること"],
+    note: "古くなった下水管の点検や取りかえが、全国で急がれているよ。" },
+
+  /* ---- ⚡ 電気 ---- */
+  { t: "power", w: "{発電所|はつでんしょ}", m: "電気をつくる施設",
+    q: "日本で、いちばん多くの電気をつくっている発電のしかたは？", a: "火力発電", x: ["水力発電", "風力発電"],
+    note: "石炭や天然ガスなどを燃やしてつくる。二酸化炭素が出るので、太陽光や風力などをふやすとりくみが進んでいるよ。" },
+  { t: "power", w: "{送電線|そうでんせん}", m: "発電所から変電所へ、高い電圧の電気を送る電線",
+    q: "発電所でつくった電気を、とても高い電圧にして送るのはなぜ？", a: "送るとちゅうでむだになる電気を少なくするため", x: ["電気が流れるスピードを速くするため", "電線を軽くするため"],
+    note: "数十万ボルトという、とても高い電圧で送ることもあるよ。" },
+  { t: "power", w: "{変電所|へんでんしょ}", m: "電気の電圧を変えて（おもに下げて）、次の場所へ送る施設" },
+  { t: "power", w: "{柱上|ちゅうじょう}{変圧器|へんあつき}", m: "電柱の上にあるバケツのような機械。電圧を家で使える大きさに下げる",
+    q: "家のコンセントにきている電気の電圧は、ふつう何ボルト？", a: "100ボルト", x: ["1.5ボルト", "6600ボルト"],
+    note: "電柱の電線には6600ボルトの電気が流れていて、柱上変圧器で100ボルトや200ボルトに下げているよ。" },
+  { t: "power", w: "{周波数|しゅうはすう}", m: "電気の流れる向きが、1秒間に入れかわる回数", hard: true,
+    q: "東日本と西日本で、電気の周波数がちがうのはなぜ？", a: "明治時代に、東はドイツ製、西はアメリカ製の発電機を使い始めたから", x: ["東と西で、地面の性質がちがうから", "東日本のほうが寒いから"],
+    note: "東日本は50ヘルツ、西日本は60ヘルツ。東と西で電気をやりとりするには、周波数を変える施設が必要なんだ。" },
+  { t: "power", w: "ブレーカー", m: "電気を使いすぎたときや、電気がもれたときに、自動で電気を止める装置", same: "bunden",
+    q: "電子レンジとドライヤーとエアコンを同時に使ったら、部屋の電気が消えた。まずすることは？", a: "使っている電気製品をへらしてから、ブレーカーを上げる", x: ["ぬれた手でコンセントをさわってたしかめる", "新しい電球を買いに行く"],
+    note: "ブレーカーは、電気の使いすぎで電線が熱くなり、火事になるのを防いでくれているよ。" },
+  { t: "power", w: "{分電盤|ぶんでんばん}", m: "家の中の部屋ごとに電気を分けて配るための箱", same: "bunden" },
+  { t: "power", w: "{停電|ていでん}", m: "電気が止まって、使えなくなること" },
+  { t: "power", w: "{節電|せつでん}", m: "使う電気を少なくするように工夫すること" },
+  { t: "power", w: "{太陽光|たいようこう}{発電|はつでん}", m: "太陽の光を、パネルで直接電気に変える発電",
+    q: "太陽光発電の弱点は？", a: "夜や雨の日は、ほとんど電気をつくれない", x: ["二酸化炭素をたくさん出す", "燃料の石油がたくさん必要"],
+    note: "だから、電気をためておく蓄電池と組み合わせるくふうが進んでいるよ。" },
+  { t: "power", w: "{蓄電池|ちくでんち}", m: "電気をためておき、あとで使えるようにする装置" },
+  { t: "power", w: "{無電柱化|むでんちゅうか}", m: "電線を地面の下にうめて、電柱をなくすこと",
+    q: "無電柱化をすると、どんなよいことがある？", a: "地震や台風で電柱がたおれて、道をふさぐことがなくなる", x: ["電気代が無料になる", "電気がとどくのが速くなる"],
+    note: "まちの景色もすっきりする。ただ、工事にお金と時間がかかるのが課題なんだ。" },
+  { t: "power", w: "{同時|どうじ}{同量|どうりょう}", m: "使われる電気の量と、つくる電気の量を、いつも同じにそろえること", hard: true,
+    q: "発電所が、使われる電気の量に合わせて、つくる電気の量をたえず調整しているのはなぜ？", a: "電気はたくさんためておくのがむずかしく、量がずれると停電につながるから", x: ["電気は使わないと、くさってしまうから", "つくりすぎると、電線がのびてしまうから"],
+    note: "夏の昼間など、電気がたくさん使われる時間に「節電」がよびかけられるのは、このためだよ。" },
+  { t: "power", w: "スマートメーター", m: "使った電気の量を自動ではかり、通信で電力会社に送る電気メーター" },
+  { t: "power", w: "{風力|ふうりょく}{発電|はつでん}", m: "風で大きな羽根を回して、電気をつくる発電",
+    q: "風力発電の風車が、海の上につくられることがあるのはなぜ？", a: "海の上は、強い風が安定してふきやすいから", x: ["海の水で、風車を冷やすため", "魚に電気を分けてあげるため"],
+    note: "海の上の風力発電を「洋上風力」というよ。日本でもふやす計画が進んでいる。" },
+
+  /* ---- 🔥 ガス ---- */
+  { t: "gas", w: "{都市|とし}ガス", m: "地下のガス管を通って、家に届けられるガス。おもな原料は天然ガス",
+    q: "都市ガスのガス警報器を、天井の近くにつけるのはなぜ？", a: "都市ガスは空気より軽く、もれると上にたまるから", x: ["天井のほうが電気をとりやすいから", "子どもにさわられないようにするため"],
+    note: "どこにつけるかはガスの種類で決まる。家のガスがどちらか、たしかめてみよう。" },
+  { t: "gas", w: "{LP|エルピー}ガス", m: "ボンベにつめて、家までトラックで運ばれるガス。プロパンガスともいう",
+    q: "LPガスのガス警報器は、どこにつける？", a: "床に近い、低いところ", x: ["天井の近く", "家の外の屋根の上"],
+    note: "LPガスは空気より重いので、もれると床の近くにたまるよ。" },
+  { t: "gas", w: "{天然|てんねん}ガス", m: "地下からとれる燃えるガス。日本はほとんどを外国から買っている", hard: true,
+    q: "天然ガスは、外国から日本までどうやって運ばれてくる？", a: "とても冷やして液体にし、体積を小さくして船で運ぶ", x: ["大きな風船にふくらませて飛行機で運ぶ", "海の底のパイプで、遠い国から直接運ぶ"],
+    note: "マイナス162度まで冷やすと液体になり、体積は約600分の1になるよ。" },
+  { t: "gas", w: "{付臭|ふしゅう}", m: "ガスがもれたときに気づけるよう、わざとにおいをつけること",
+    q: "ガスに、わざといやなにおいがつけてあるのはなぜ？", a: "もれたときに、すぐ気づけるように", x: ["虫が近づかないように", "火がよく燃えるように"],
+    note: "ガスには、もともとにおいがほとんどないんだ。" },
+  { t: "gas", w: "マイコンメーター", m: "地震や、ガスの流れすぎを感じると、自動でガスを止めるガスメーター",
+    q: "地震のあと、マイコンメーターが働いてガスが止まった。もとにもどすには？", a: "ガス器具をすべて止めてから、復帰ボタンを押して3分ほど待つ", x: ["メーターを強くたたく", "メーターを取り外して、ふり回す"],
+    note: "3分ほどのあいだに、ガスもれがないかをメーターが自分でたしかめているよ。" },
+  { t: "gas", w: "ポリエチレン{管|かん}", m: "地震でも切れにくい、やわらかくしなるプラスチックのガス管", hard: true,
+    q: "新しくうめるガス管に、ポリエチレン管がよく使われるのはなぜ？", a: "やわらかくしなるので、地震で地面が動いても切れにくいから", x: ["金属より色がきれいだから", "ガスがよく燃えるようになるから"],
+    note: "さびないので、長く使えるのもよいところだよ。" },
+  { t: "gas", w: "{不完全|ふかんぜん}{燃焼|ねんしょう}", m: "空気（酸素）が足りないまま、物が燃えること",
+    q: "ガスコンロや石油ストーブを使うとき、ときどき窓をあけて換気するのはなぜ？", a: "酸素が足りなくなると、毒のある一酸化炭素が出るから", x: ["部屋の温度を上げるため", "ガス代を安くするため"],
+    note: "炎がオレンジ色っぽいときは、空気が足りていないサインのことがあるよ。" },
+  { t: "gas", w: "{一酸化炭素|いっさんかたんそ}", m: "色もにおいもない、毒のある気体。物が燃えるときに空気が足りないと出る" },
+  { t: "gas", w: "ガス{栓|せん}", m: "ガス管とガス器具のあいだにある、ガスを出したり止めたりする口" },
+  { t: "gas", w: "ガスもれ", m: "ガス管や器具から、ガスがもれ出ること",
+    q: "家でガスのにおいがしたとき、まずすることは？", a: "火を使わず、窓を開けて、ガス栓をしめる", x: ["換気扇を回して、においを外に出す", "電気をつけて、もれている場所をさがす"],
+    note: "スイッチを入れたときの小さな火花でも、ガスに火がつくことがある。電気のスイッチにはさわらないで！" },
+  { t: "gas", w: "ガスホルダー", m: "都市ガスをためておく、大きな丸いタンク",
+    q: "ガスホルダーが丸い（ボールのような）形をしているのはなぜ？", a: "中からおす力が、どこにも同じようにかかって、じょうぶだから", x: ["転がして運べるようにするため", "遠くから目立たせるため"],
+    note: "ガスを使う量が多い時間に備えて、使う量が少ない時間にためておくよ。" },
+  { t: "gas", w: "{立|た}ち{消|き}え{安全|あんぜん}{装置|そうち}", m: "コンロの火が風やふきこぼれで消えたとき、自動でガスを止める装置", same: "konro",
+    q: "みそ汁がふきこぼれて、ガスコンロの火が消えてしまった。今のガスコンロでは、どうなる？", a: "安全装置が働いて、自動でガスが止まる", x: ["ガスが出つづけて、部屋にたまる", "火がひとりでに、またつく"],
+    note: "今の家庭用ガスコンロには、すべてのバーナーにこの安全装置がついているよ。" },
+  { t: "gas", w: "{Si|エスアイ}センサー", m: "ガスコンロについている、なべの温度を感じとって、熱くなりすぎると自動で火を消すしくみ", same: "konro",
+    q: "ガスコンロのSiセンサーは、おもに何を防ぐためのもの？", a: "天ぷら油が熱くなりすぎて、火事になること", x: ["ガス料金が高くなること", "なべがさびること"],
+    note: "それでも、火を使っているときはその場をはなれないのがいちばん大事だよ。" },
+  { t: "gas", w: "ガス{警報器|けいほうき}", m: "もれたガスを感じとって、音や光で知らせる機械" },
+
+  /* ---- 🌉 道路・橋 ---- */
+  { t: "road", w: "{伸縮|しんしゅく}{装置|そうち}", m: "橋のつなぎ目にある金具。橋がのびたりちぢんだりするのを受け止める",
+    q: "橋のつなぎ目に、わざとすき間（でこぼこの金具）があるのはなぜ？", a: "暑さ寒さで、橋がのびたりちぢんだりするから", x: ["雨水を下に流すため", "車のスピードを落とさせるため"],
+    note: "鉄やコンクリートは、夏はのびて冬はちぢむ。すき間がないと、橋どうしがおしあって傷んでしまうよ。" },
+  { t: "road", w: "{点検|てんけん}", m: "こわれたところがないか、近くで見たり、たたいたりして調べること",
+    q: "日本の道路の橋やトンネルは、決まりで何年に1回点検することになっている？", a: "5年に1回", x: ["50年に1回", "100年に1回"],
+    note: "ハンマーでたたいた音で、中のコンクリートがういていないかも調べるよ（打音検査）。" },
+  { t: "road", w: "{老朽化|ろうきゅうか}", m: "古くなって、いたんだり弱くなったりすること", hard: true,
+    q: "日本の多くの橋やトンネルが、今いっせいに古くなってきているのはなぜ？", a: "1960〜70年代ごろに、まとめてたくさんつくられたから", x: ["最近の雨が強くて、急にとけ始めたから", "昔の橋は、すべて木でできているから"],
+    note: "日本の経済が大きくのびた「高度経済成長」のころに、道路や橋がたくさんつくられたんだ。" },
+  { t: "road", w: "{長寿命化|ちょうじゅみょうか}", m: "こわれる前に早めに直して、施設を長く使えるようにすること" },
+  { t: "road", w: "{舗装|ほそう}", m: "道路の表面を、アスファルトやコンクリートでおおうこと", same: "hosou" },
+  { t: "road", w: "{排水性|はいすいせい}{舗装|ほそう}", m: "すき間の多いアスファルトで、雨水がしみこむようにした道路", same: "hosou",
+    q: "すき間の多いアスファルト（排水性舗装）の道路のよいところは？", a: "雨の日に水たまりができにくく、すべりにくい", x: ["雪がまったく積もらない", "車のガソリンがへらなくなる"],
+    note: "車がはねる水しぶきが少なくなり、走る音も小さくなるよ。" },
+  { t: "road", w: "{点字|てんじ}ブロック", m: "目の不自由な人が、足のうらで道や危ない場所がわかるように、歩道にしいた黄色いブロック",
+    q: "点字ブロックのうち、点がならんだ形のブロックの意味は？", a: "止まれ・注意（階段や交差点の前など）", x: ["この先にまっすぐ進め", "自転車が通ってよい"],
+    note: "線の形は「進む方向」、点の形は「止まれ・注意」。点字ブロックの上に自転車や荷物を置かないようにしよう。" },
+  { t: "road", w: "ガードレール", m: "車が道路からとび出したり、歩道に入ったりしないようにする柵" },
+  { t: "road", w: "{信号機|しんごうき}", m: "赤・黄・青の光で、車や人に進め・止まれを知らせる機械",
+    q: "信号機のランプに、電球にかわってLEDが使われるようになった理由は？", a: "使う電気が少なくてすみ、長もちするから", x: ["青の色が、より青く見えるから", "夜になると自動で消えるから"],
+    note: "雪の多い地域では、雪が積もりにくいように、ランプがたてにならんだ信号機が多いよ。" },
+  { t: "road", w: "{歩道橋|ほどうきょう}", m: "車道の上をまたいでかけた、人が歩いてわたる橋" },
+  { t: "road", w: "{共同溝|きょうどうこう}", m: "電線・水道管・ガス管などを、道路の下の大きなトンネルにまとめて入れたもの", hard: true,
+    q: "共同溝をつくると、どんなよいことがある？", a: "管の工事のたびに、道路をほり返さなくてすむ", x: ["道路がまったくすりへらなくなる", "道路に雨がかからなくなる"],
+    note: "人がトンネルの中に入って、点検や修理ができるよ。" },
+  { t: "road", w: "{耐震|たいしん}{補強|ほきょう}", m: "地震でこわれないように、建物や橋を強くする工事",
+    q: "高速道路の橋の柱に、鉄板が巻きつけてあることがある。何のため？", a: "地震のゆれで、柱がこわれないようにするため", x: ["柱をきれいな色に見せるため", "車の音をはね返すため"],
+    note: "1995年の阪神・淡路大震災で高速道路の橋がたおれたことから、全国で進められたよ。" },
+  { t: "road", w: "トンネル", m: "山や川、地面の下をほりぬいてつくった通り道",
+    q: "トンネルの照明が、入り口の近くほど明るくしてあるのはなぜ？", a: "外の明るさから、目がトンネルの暗さになれるまでを助けるため", x: ["入り口の近くは電気代が安いから", "トンネルの中に虫が入らないようにするため"],
+    note: "明るい外から急に暗い所に入ると、目がなれるまで見えにくくなる。その間の事故を防いでいるよ。" },
+  { t: "road", w: "{横断|おうだん}{歩道|ほどう}", m: "道路をわたる人のために、白い線をひいた場所",
+    q: "信号機のない横断歩道で、わたろうとしている人がいるとき、車はどうしなければならない？", a: "横断歩道の手前で止まって、人を先にわたらせる", x: ["クラクションを鳴らしてから、先に通る", "スピードを上げて、先に通りすぎる"],
+    note: "これは法律で決められたルール。わたる人も、車が止まったことをたしかめてからわたろう。" },
+  { t: "road", w: "{消雪|しょうせつ}パイプ", m: "道路から地下水を出して、つもった雪をとかすしくみ",
+    q: "消雪パイプに、地下水が使われるのはなぜ？", a: "地下水は冬でも10度くらいあり、雪をとかしやすいから", x: ["地下水には、塩がたくさん入っているから", "地下水は、わかしたお湯と同じくらい熱いから"],
+    note: "雪の多い新潟県などで、よく見られるよ。地下水のくみすぎで地面が下がらないよう、使い方にも気をつけているんだ。" },
+
+  /* ---- 📡 通信 ---- */
+  { t: "comm", w: "{海底|かいてい}ケーブル", m: "海の底にしいた通信用のケーブル。国と国をつなぐ",
+    q: "外国とインターネットでやりとりするデータは、ほとんどが何を通っている？", a: "海の底にしいたケーブル", x: ["宇宙の人工衛星", "空を飛ぶ飛行機"],
+    note: "日本と外国をつなぐ通信の約99%は、海底ケーブルを通っているよ。" },
+  { t: "comm", w: "{光|ひかり}ファイバー", m: "髪の毛ほどの細いガラスのせんい。光を使って、たくさんの情報を速く送る" },
+  { t: "comm", w: "{基地局|きちきょく}", m: "スマホや携帯電話と、電波でやりとりするアンテナの設備",
+    q: "スマホで電話をかけたとき、声はどうやって相手まで伝わっている？", a: "近くの基地局まで電波で、そこから先はおもにケーブルで", x: ["相手のスマホまで、直接電波でとどく", "すべて宇宙の人工衛星を通ってとどく"],
+    note: "スマホの電波が届くのは、近くの基地局まで。その先は地上のケーブルが大活躍しているよ。" },
+  { t: "comm", w: "{電波|でんぱ}", m: "目に見えない波。テレビ・ラジオ・スマホなどで情報を運ぶ" },
+  { t: "comm", w: "{無線|むせん}LAN", m: "電波を使って、パソコンやスマホをインターネットにつなぐしくみ。Wi-Fiともいう" },
+  { t: "comm", w: "データセンター", m: "たくさんのコンピューターを置いて、データをあずかったり動かしたりする建物" },
+  { t: "comm", w: "{通信|つうしん}{衛星|えいせい}", m: "宇宙で電波を中継して、遠くの場所どうしの通信を助ける人工衛星",
+    q: "通信衛星が特に役に立つのは、どんなとき？", a: "ケーブルを引けない海の上や山の中で、通信するとき", x: ["家の中でテレビのリモコンを使うとき", "となりの部屋の人と話すとき"],
+    note: "災害で地上のケーブルが切れたときにも、通信衛星が役に立つよ。" },
+  { t: "comm", w: "{通信|つうしん}{障害|しょうがい}", m: "機械の故障などで、スマホやインターネットがつながりにくくなること", same: "tsunagaranai" },
+  { t: "comm", w: "{輻輳|ふくそう}", m: "大勢がいっせいに電話をかけて回線がこみあい、つながりにくくなること", hard: true, same: "tsunagaranai",
+    q: "大きな地震のすぐあと、電話がつながりにくくなるのはなぜ？", a: "大勢がいっせいに電話をかけて、回線がこみあうから", x: ["地震で電波がゆれて弱くなるから", "電話会社が休みになるから"],
+    note: "110番や119番などの大切な電話を通すために、ほかの電話を制限することがある。家族への連絡は、メッセージや災害用伝言ダイヤルを使おう。" },
+  { t: "comm", w: "{公衆|こうしゅう}{電話|でんわ}", m: "町の中にある、だれでも使える電話",
+    q: "災害のとき、公衆電話がつながりやすいのはなぜ？", a: "大切な電話として、電話会社が優先してつないでいるから", x: ["スマホより電波が強いから", "料金が高いから"],
+    note: "大きな災害のときは、無料で使えるようになることもある。近くの公衆電話の場所を知っておこう。" },
+  { t: "comm", w: "5G", m: "スマホなどで使われる新しい通信のしくみ。速くて、たくさんの機械と同時につながれる" },
+  { t: "comm", w: "{電話局|でんわきょく}", m: "電話やインターネットの線が集まり、相手につなぐための機械を置いている建物" },
+  { t: "comm", w: "とう{道|どう}", m: "通信ケーブルを通すために、地面の下につくられたトンネル", hard: true,
+    q: "通信ケーブルを地下のトンネル（とう道）に通すと、どんなよいことがある？", a: "地震や台風に強く、人が中に入って点検や修理ができる", x: ["電波がとどく範囲が広くなる", "スマホの料金が安くなる"],
+    note: "大きな都市の地下には、何kmも続くとう道がはりめぐらされているよ。" },
+  { t: "comm", w: "{災害用|さいがいよう}{伝言板|でんごんばん}", m: "大きな災害のとき、スマホやパソコンから、文字で無事を知らせたり家族の書きこみを見たりできるしくみ",
+    q: "災害用伝言板（web171）を使うと、何ができる？", a: "文字で無事を書きこんだり、家族の書きこみを見たりできる", x: ["救急車を自動でよぶことができる", "止まった電気を直すことができる"],
+    note: "声で残す「災害用伝言ダイヤル171」とあわせて、家族で使い方を決めておこう。" },
+
+  /* ---- 🏠 くらしと防災 ---- */
+  { t: "bousai", w: "{災害用|さいがいよう}{伝言|でんごん}ダイヤル", m: "大きな災害のとき、171に電話して、声のメッセージを残したり聞いたりできるしくみ",
+    q: "災害用伝言ダイヤルの電話番号は？", a: "171", x: ["117", "177"],
+    note: "117は時報、177は天気予報。171は、毎月1日や15日などに練習で使ってみることができるよ。" },
+  { t: "bousai", w: "{備蓄|びちく}", m: "災害にそなえて、水や食べ物などをたくわえておくこと",
+    q: "災害にそなえてたくわえておく飲み水は、1人1日どれくらいがめやす？", a: "3リットル", x: ["300ミリリットル", "30リットル"],
+    note: "最低3日分、できれば1週間分あると安心。家族の人数でかけ算してみよう。" },
+  { t: "bousai", w: "ローリングストック", m: "食べ物をふだんから少し多めに買い、食べた分だけ買い足して、たくわえ続ける方法" },
+  { t: "bousai", w: "{通電|つうでん}{火災|かさい}", m: "停電がなおって電気がもどったときに、こわれた電気製品などから起きる火事",
+    q: "地震のあと、家をはなれてひなんするとき、電気についてしておきたいことは？", a: "ブレーカーを落としてから出る", x: ["電気をすべてつけたままにしておく", "コンセントに水をかけておく"],
+    note: "電気がもどったとき、たおれたストーブや傷んだコードから火が出ることがあるよ。" },
+  { t: "bousai", w: "{感震|かんしん}ブレーカー", m: "大きなゆれを感じると、自動で電気を止めるブレーカー" },
+  { t: "bousai", w: "ハザードマップ", m: "洪水や土砂災害などで危ない場所や、ひなん場所をしめした地図",
+    q: "ハザードマップは、いつ見ておくのがよい？", a: "災害が起きる前の、ふだんのうちに", x: ["災害が起きてから、はじめて見る", "災害が終わってから見る"],
+    note: "市や町のホームページなどで見られるよ。家や学校のまわりをたしかめておこう。" },
+  { t: "bousai", w: "ライフライン", m: "水道・電気・ガス・通信など、くらしに欠かせないものを届けるしくみ",
+    q: "大きな地震のあと、ほかより早く使えるようになることが多いライフラインは？", a: "電気", x: ["都市ガス", "水道"],
+    note: "電気は電線をつなぎ直せば使えることが多い。地下の管を1本ずつ調べる都市ガスや水道は、時間がかかりやすいよ。" },
+  { t: "bousai", w: "{携帯|けいたい}トイレ", m: "水が止まって水洗トイレが使えないとき、便器にかぶせて使うふくろのトイレ",
+    q: "大きな地震のあと、水が出ても、すぐにトイレを流さないほうがよいことがあるのはなぜ？", a: "下水管がこわれていて、よごれた水があふれることがあるから", x: ["水道代が高くなるから", "水が冷たすぎるから"],
+    note: "下水管が無事かどうかわかるまでは、携帯トイレを使うと安心だよ。" },
+  { t: "bousai", w: "{給水|きゅうすい}{拠点|きょてん}", m: "災害で水が止まったとき、水を配ってもらえる場所。学校や公園などにある" },
+  { t: "bousai", w: "{復旧|ふっきゅう}", m: "こわれたものを直して、もとどおり使えるようにすること" },
+  { t: "bousai", w: "{避難所|ひなんじょ}", m: "家にいられなくなった人が、しばらく生活する場所。学校の体育館など" },
+  { t: "bousai", w: "{非常用|ひじょうよう}{持|も}ち{出|だ}し{袋|ぶくろ}", m: "ひなんするときにすぐ持って出られるよう、必要なものをまとめたふくろ",
+    q: "非常用持ち出し袋は、どこに置いておくのがよい？", a: "げんかんの近くなど、すぐに持ち出せる場所", x: ["押し入れのいちばん奥", "屋根うらの物置"],
+    note: "中身の食べ物や電池の期限を、年に1〜2回たしかめよう。" },
+  { t: "bousai", w: "ポリタンク", m: "水を運んだり、ためたりするためのプラスチックの入れ物",
+    q: "給水所でもらう10リットルの水の重さは、だいたいどれくらい？", a: "10キログラム", x: ["1キログラム", "100キログラム"],
+    note: "水は1リットルで約1キログラム。リュックに入れたり、台車を使ったりすると運びやすいよ。" },
+  { t: "bousai", w: "マンホールトイレ", m: "災害のとき、下水道のマンホールの上に便座やテントを置いて使うトイレ",
+    q: "マンホールトイレのよいところは？", a: "下水道に直接流せるので、たまったものをくみ取らなくてよい", x: ["電気で自動でそうじしてくれる", "どの家の庭にも、はじめからある"],
+    note: "学校や公園など、避難所になる場所の地下に準備されていることがあるよ。" }
+];
+/* ===== ここまでことばのデータ ===== */
+</script>
+
+<style>
+  :root {
+    --bg: #f3f8fc;
+    --card: #ffffff;
+    --text: #1f2a33;
+    --muted: #5b6874;
+    --accent: #1f6fb2;
+    --accent-text: #ffffff;
+    --line: #d6e2ec;
+    --good: #2f8a4c;
+    --soso: #b7860b;
+    --bad: #b5453a;
+    --phrase-bg: #e6f1fb;
+    --phrase-line: #6fa8dc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #161c22;
+      --card: #1f2830;
+      --text: #e8eef3;
+      --muted: #a3b1bd;
+      --accent: #5aa9e6;
+      --accent-text: #161c22;
+      --line: #34424f;
+      --good: #6cc78a;
+      --soso: #e3b84a;
+      --bad: #ee7d72;
+      --phrase-bg: #1d2f40;
+      --phrase-line: #3f78a8;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+    font-size: 18px;
+    line-height: 1.9;
+    -webkit-text-size-adjust: 100%; /* スマホを横にしたとき、文字が勝手に大きくならないように */
+    text-size-adjust: 100%;
+  }
+  /* すばやく押したときに画面が拡大されないように */
+  a, button { touch-action: manipulation; }
+  main { max-width: 640px; margin: 0 auto; padding: 16px 16px 48px; }
+  /* 文字が大きいときは、ボタンを次の行へ回す（1文字ずつ縦に折り返さないように） */
+  .topbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
+  /* 指で押しやすいように、リンクの押せる範囲を高さ48pxにする */
+  .topbar a { color: var(--muted); font-size: 15px; display: inline-flex; align-items: center; min-height: 48px; padding: 0 8px; margin-left: -8px; white-space: nowrap; }
+  .ruby-toggle {
+    min-height: 48px; padding: 0 14px; border-radius: 24px; white-space: nowrap;
+    border: 1px solid var(--line); background: var(--card); color: var(--text);
+    font: inherit; font-size: 15px; cursor: pointer;
+  }
+  body.no-ruby rt { display: none; }
+  rt { font-size: 0.55em; }
+  h1 { font-size: 26px; line-height: 1.6; margin: 8px 0 4px; }
+  /* ゲームの題名：ぷにっとした丸い題字（端末の丸い字体＋白い丸いふちどり＋ずらした影）
+     ふちどりは、字のまわりに影を12方向に重ねて作る（角がとがらず、丸くなる） */
+  h1.puni {
+    font-family: "Arial Rounded MT Bold", "Hiragino Maru Gothic ProN", "Hiragino Maru Gothic Pro", "UD Digi Kyokasho NK-B", "BIZ UDPGothic", sans-serif;
+    font-weight: 900; font-size: 36px; letter-spacing: .04em;
+    color: var(--accent); transform: rotate(-1.5deg); transform-origin: left center;
+    /* 白いふちどりが白いカードにとけないよう、うすい水色の帯にのせる。
+       帯をつけたぶん、上下の余白を前（12px と 10px）より小さくして、カードの高さがのびないようにしている */
+    display: inline-block; background: var(--puni-band); border-radius: 14px;
+    padding: 0 16px 6px; margin: -4px 0 -4px; line-height: 1.5;
+    text-shadow:
+      .1em 0 0 #fff, .087em .05em 0 #fff, .05em .087em 0 #fff, 0 .1em 0 #fff, -.05em .087em 0 #fff, -.087em .05em 0 #fff,
+      -.1em 0 0 #fff, -.087em -.05em 0 #fff, -.05em -.087em 0 #fff, 0 -.1em 0 #fff, .05em -.087em 0 #fff, .087em -.05em 0 #fff,
+      .1em .1em 0 var(--puni-shade), .05em .187em 0 var(--puni-shade), 0 .2em 0 var(--puni-shade), -.05em .187em 0 var(--puni-shade),
+      -.1em .1em 0 var(--puni-shade), .087em .15em 0 var(--puni-shade), -.087em .15em 0 var(--puni-shade);
+  }
+  :root { --puni-shade: #0f3a5f; --puni-band: #d6e9f8; }
+  @media (prefers-color-scheme: dark) { :root { --puni-shade: #0b1f30; --puni-band: #1d3a55; } }
+  h2 { font-size: 20px; margin: 0 0 8px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+  .muted { color: var(--muted); }
+  .btn {
+    display: block; width: 100%; min-height: 56px; margin: 0 0 10px;
+    padding: 12px 16px; border-radius: 14px; border: 2px solid var(--line);
+    background: var(--card); color: var(--text); font: inherit; text-align: left;
+    cursor: pointer; line-height: 1.8;
+  }
+  /* スマホでは、押したあとに色が残らないよう、マウスのときだけ色を変える */
+  @media (hover: hover) {
+    .btn:hover:not(:disabled) { border-color: var(--accent); }
+  }
+  .btn:disabled { cursor: default; opacity: 0.55; }
+  .btn.chosen { opacity: 1; border-color: var(--accent); border-width: 3px; }
+  .btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); text-align: center; font-weight: bold; }
+  .btn.secondary { text-align: center; }
+  .progress-text { font-size: 15px; color: var(--muted); }
+  .progress { height: 10px; background: var(--line); border-radius: 5px; overflow: hidden; margin: 4px 0 16px; }
+  .progress > div { height: 100%; background: var(--accent); transition: width .3s; }
+  .industry { display: inline-block; font-size: 14px; padding: 2px 12px; border-radius: 12px; background: var(--phrase-bg); border: 1px solid var(--phrase-line); margin-bottom: 8px; }
+  /* ジャンルごとの色（--g-bg：うすい色、--g-line：こい色）。クラスの名前は "g-" ＋ ジャンルの名前 */
+  .g-water  { --g-bg: #e3f3fb; --g-line: #3aa0d0; }
+  .g-sewer  { --g-bg: #f3ebe2; --g-line: #9a6b45; }
+  .g-power  { --g-bg: #fff6cc; --g-line: #d4a800; }
+  .g-gas    { --g-bg: #fde8e0; --g-line: #e0613a; }
+  .g-road   { --g-bg: #eceff1; --g-line: #78868f; }
+  .g-comm   { --g-bg: #efe7f8; --g-line: #8a5cc4; }
+  .g-bousai { --g-bg: #e5f4e7; --g-line: #3f9a52; }
+  @media (prefers-color-scheme: dark) {
+    .g-water  { --g-bg: #17313f; --g-line: #4fb3e0; }
+    .g-sewer  { --g-bg: #33281f; --g-line: #b98a63; }
+    .g-power  { --g-bg: #3a3214; --g-line: #e3c13a; }
+    .g-gas    { --g-bg: #3d2219; --g-line: #f08060; }
+    .g-road   { --g-bg: #2a3035; --g-line: #9aa8b1; }
+    .g-comm   { --g-bg: #2e2440; --g-line: #a985dc; }
+    .g-bousai { --g-bg: #1d3423; --g-line: #62b874; }
+  }
+  .industry.g { background: var(--g-bg); border-color: var(--g-line); }
+  .card.g { border-left: 6px solid var(--g-line); }
+  /* はじめの画面のジャンルえらび */
+  .genre-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 10px; }
+  .genre-list .btn { margin: 0; }
+  .btn.g { background: var(--g-bg); border-color: var(--g-line); border-left-width: 8px; }
+  .btn .count { display: block; font-size: 14px; color: var(--muted); font-weight: normal; }
+  .btn.primary .count { color: inherit; }
+  /* ---- 絵（きりがみ風：色紙を切りぬいて、ずらした影をつける） ---- */
+  :root {
+    --ill-sky: #e6f2fa; --ill-grass: #cfe3b0; --ill-soil: #ead9bf; --ill-soil2: #dcc39f;
+    --ill-ink: #4a3b2c; --ill-paper: #fffdf7; --ill-roof: #e79a7b; --ill-roof2: #9fc3d8;
+    --ill-dim: #c9c4bc; --ill-dim2: #e4e0d9; --ill-shadow: rgba(43, 38, 32, .25);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ill-sky: #1b2732; --ill-grass: #3d5230; --ill-soil: #3a2f24; --ill-soil2: #2e251c;
+      --ill-ink: #e8dccb; --ill-paper: #3a332b; --ill-roof: #9c5b45; --ill-roof2: #4f6f82;
+      --ill-dim: #4d4740; --ill-dim2: #3b362f; --ill-shadow: rgba(0, 0, 0, .45);
+    }
+  }
+  .sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+  /* ジャンルの小さな絵 */
+  .gicon { width: 1.4em; height: 1.4em; vertical-align: -.35em; margin-right: 4px; filter: drop-shadow(1.5px 1.5px 0 var(--ill-shadow)); }
+  .btn .gicon { width: 30px; height: 30px; margin-right: 6px; }
+  /* まちの断面図 */
+  .cross { margin: 0 0 16px; padding: 10px; }
+  .cross svg.scene { display: block; width: 100%; height: auto; border-radius: 10px; }
+  .scene-wrap { position: relative; }
+  .scene-tag {
+    position: absolute; transform: translate(-50%, -50%); pointer-events: none; white-space: nowrap;
+    font-size: clamp(10px, 2.6vw, 13px); line-height: 1.3; font-weight: bold; padding: 0 5px;
+    color: var(--text); background: var(--card); border: 1.5px solid var(--g-line); border-radius: 4px;
+    box-shadow: 1.5px 1.5px 0 var(--ill-shadow); transition: transform .15s ease-out;
+  }
+  .scene-tag.dim { border-color: var(--ill-dim); color: var(--muted); }
+  .scene-tag.active { transform: translate(-50%, -50%) scale(1.25); background: var(--g-bg); color: var(--text); z-index: 2; }
+  .cross .caption { font-size: 15px; color: var(--muted); margin: 8px 2px 0; }
+  .part { --pm: var(--g-line); --pl: var(--g-bg); cursor: pointer; outline: none; transition: transform .15s ease-out; transform-box: view-box; }
+  .part.dim { --pm: var(--ill-dim); --pl: var(--ill-dim2); } /* まだことばを覚えていないジャンルは灰色 */
+  @media (hover: hover) { .part:hover { transform: translateY(-3px); } }
+  .part:focus-visible { transform: translateY(-3px); }
+  .part:active { transform: translateY(1px); }
+  .part.pressing { animation: part-hop .28s ease-out both; }
+  @keyframes part-hop { 0% { transform: none; } 45% { transform: translateY(-7px); } 100% { transform: translateY(1px); } }
+  @media (prefers-reduced-motion: reduce) {
+    .part { transition: none; }
+    .part.pressing { animation: none; }
+  }
+  .hard { display: inline-block; font-size: 14px; padding: 2px 12px; border-radius: 12px; background: var(--bad); color: var(--card); font-weight: bold; margin-bottom: 8px; }
+  .big-word { font-size: 24px; font-weight: bold; letter-spacing: .04em; margin: 4px 0; }
+  .feedback { font-size: 22px; font-weight: bold; margin: 0 0 6px; }
+  .p3 { color: var(--good); } .p1 { color: var(--soso); } .p0 { color: var(--bad); }
+  .phrase { background: var(--phrase-bg); border-left: 6px solid var(--phrase-line); border-radius: 10px; padding: 12px 14px; margin: 14px 0 4px; }
+  .phrase .label { font-size: 14px; color: var(--muted); }
+  .phrase .word { font-size: 22px; font-weight: bold; }
+  .phrase .note { font-size: 16px; border-top: 1.5px dashed var(--phrase-line); margin-top: 8px; padding-top: 6px; }
+  .score { font-size: 40px; font-weight: bold; color: var(--accent); margin: 0; }
+  .town-news p { margin: 4px 0; }
+  .town-news b { color: var(--accent); }
+  .recap h3 { font-size: 18px; margin: 0 0 4px; }
+  .recap p { margin: 4px 0; }
+  .error { border-color: var(--bad); color: var(--bad); }
+  /* はばのせまいスマホでは、余白を少しへらして文字の場所を広くする */
+  @media (max-width: 360px) {
+    main { padding: 12px 12px 40px; }
+    .card { padding: 16px; }
+    .phrase { padding: 10px 12px; }
+    h1 { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+<!-- ジャンルの絵（きりがみ風）。色は使う所の g-○○ の色（--g-line こい色、--g-bg うすい色）になる -->
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <symbol id="gi-water" viewBox="0 0 32 32">
+    <path style="fill:var(--g-line)" d="M3 9h13v6H3z"/>
+    <path style="fill:var(--g-line)" d="M14 9h6a5 5 0 0 1 5 5v3h-5v-2h-6z"/>
+    <path style="fill:var(--text)" d="M7 5h7v3H7z"/>
+    <path style="fill:var(--g-line)" d="M22.5 20c-2 3-3.2 4.6-3.2 6.1a3.2 3.2 0 0 0 6.4 0c0-1.5-1.2-3.1-3.2-6.1z"/>
+  </symbol>
+  <symbol id="gi-sewer" viewBox="0 0 32 32">
+    <circle style="fill:var(--g-line)" cx="16" cy="16" r="13"/>
+    <circle style="fill:var(--g-bg)" cx="16" cy="16" r="9.5"/>
+    <path style="fill:none;stroke:var(--g-line);stroke-width:2" d="M9 13h14M8 19h16M13 8v16M19 8v16"/>
+  </symbol>
+  <symbol id="gi-power" viewBox="0 0 32 32">
+    <path style="fill:var(--text)" d="M10 3h4v27h-4z"/>
+    <path style="fill:var(--text)" d="M3 7h18v3H3z"/>
+    <path style="fill:var(--g-line)" d="M23 9l-6 9h4l-2 9 8-12h-4l3-6z"/>
+  </symbol>
+  <symbol id="gi-gas" viewBox="0 0 32 32">
+    <path style="fill:var(--g-line)" d="M16 2c2 6 9 9 9 17.5a9 9 0 0 1-18 0c0-5 2.6-7.4 4-11 1 3 2 4.4 3 4.4 0-4 .8-7.4 2-10.9z"/>
+    <path style="fill:var(--g-bg)" d="M16 16c1.4 3 4.4 4.6 4.4 8a4.4 4.4 0 0 1-8.8 0c0-2.6 2.8-4.4 4.4-8z"/>
+  </symbol>
+  <symbol id="gi-road" viewBox="0 0 32 32">
+    <path style="fill:var(--g-bg)" d="M1 26q4-2 7.5 0t7.5 0 7.5 0 7.5 0v4H1z"/>
+    <path style="fill:var(--g-line)" d="M1 11h30v4H1z"/>
+    <path style="fill:var(--g-line)" d="M4 27a12 12 0 0 1 24 0h-4a8 8 0 0 0-16 0z"/>
+    <path style="fill:var(--text)" d="M3 7h2v4H3zM11 7h2v4h-2zM19 7h2v4h-2zM27 7h2v4h-2z"/>
+  </symbol>
+  <symbol id="gi-comm" viewBox="0 0 32 32">
+    <path style="fill:var(--g-line)" d="M16 9l7 21h-3.5L16 18l-3.5 12H9z"/>
+    <circle style="fill:var(--g-line)" cx="16" cy="8" r="3"/>
+    <path style="fill:none;stroke:var(--g-line);stroke-width:2.2;stroke-linecap:round" d="M10 4.5a7 7 0 0 0 0 7M22 4.5a7 7 0 0 1 0 7M6 2a12 12 0 0 0 0 12M26 2a12 12 0 0 1 0 12"/>
+  </symbol>
+  <symbol id="gi-bousai" viewBox="0 0 32 32">
+    <path style="fill:none;stroke:var(--text);stroke-width:2.4" d="M12 8V6a4 4 0 0 1 8 0v2"/>
+    <rect style="fill:var(--g-line)" x="6" y="8" width="20" height="21" rx="5"/>
+    <path style="fill:var(--g-bg)" d="M6 13q10 5 20 0v-1q-10 5-20 0z"/>
+    <path style="fill:var(--ill-paper)" d="M14.5 17h3v3h3v3h-3v3h-3v-3h-3v-3h3z"/>
+  </symbol>
+</svg>
+<main>
+  <div class="topbar">
+    <a href="index.html" id="backLink">← まちへ{戻|もど}る</a>
+    <button class="ruby-toggle" id="rubyToggle" type="button">ふりがな：あり</button>
+  </div>
+  <div id="app"></div>
+</main>
+
+<script>
+(function () {
+  const app = document.getElementById("app");
+  const rubyToggle = document.getElementById("rubyToggle");
+  const SEASON_ICONS = ["🌸", "☀️", "🍁", "⛄"];
+  const SEASONS = ["{春|はる}", "{夏|なつ}", "{秋|あき}", "{冬|ふゆ}"];
+
+  // ---- ふりがな ----
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+  function rich(s) {
+    return escapeHtml(s).replace(/\{([^{}|]+)\|([^{}|]+)\}/g, "<ruby>$1<rt>$2</rt></ruby>");
+  }
+  function plain(s) { return String(s || "").replace(/\{([^{}|]+)\|[^{}|]+\}/g, "$1"); }
+  function setupRubyToggle() {
+    document.querySelectorAll(".topbar a").forEach(a => { a.innerHTML = rich(a.textContent); });
+    rubyToggle.addEventListener("click", () => {
+      const off = document.body.classList.toggle("no-ruby");
+      rubyToggle.textContent = off ? "ふりがな：なし" : "ふりがな：あり";
+    });
+  }
+  setupRubyToggle();
+
+  // ---- 乱数 ----
+  function seededRandom(seedText) {
+    let h = 2166136261;
+    for (let i = 0; i < seedText.length; i++) { h ^= seedText.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return function () {
+      h += 0x6D2B79F5;
+      let t = h;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function shuffle(arr, rnd) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+  function today() {
+    const d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+
+  // ---- 問題づくり ----
+  // まちがいの選択肢に使えることば（同じジャンルで、説明がにている仲間ではないもの）
+  function distractorPool(entry) {
+    return STOCK.filter(e => e.t === entry.t && e !== entry && !(entry.same && e.same === entry.same));
+  }
+  function hasQuiz(entry) { return !!entry.q; }
+  function questionTypes(entry) {
+    const types = ["m2w", "w2m"];
+    // 「なぜ？クイズ」は、実際に役立つ知識なので、ほかの問題より出やすくする
+    if (hasQuiz(entry)) types.push("quiz", "quiz");
+    return types;
+  }
+  function choiceList(correct, wrong) {
+    return [{ label: correct, points: 3 }].concat(wrong.map(label => ({ label, points: 0 })));
+  }
+  // 問題の種類ごとの、問題文と選択肢のつくり方
+  const QUESTION_BUILDERS = {
+    // 説明 → ことば
+    m2w(entry, others) {
+      return {
+        promptHtml: "<p>" + rich("つぎの{説明|せつめい}に{合|あ}うことばは？") + "</p><p><b>「" + escapeHtml(entry.m) + "」</b></p>",
+        choices: choiceList(entry.w, others.map(e => e.w))
+      };
+    },
+    // ことば → 説明
+    w2m(entry, others) {
+      return {
+        promptHtml: "<p>" + rich("つぎのことばの{説明|せつめい}は？") + '</p><p class="big-word">' + rich(entry.w) + "</p>",
+        choices: choiceList(entry.m, others.map(e => e.m))
+      };
+    },
+    // なぜ？クイズ（q, a, x に書いた問題をそのまま出す）
+    quiz(entry) {
+      return {
+        promptHtml: "<p><b>" + rich(entry.q) + "</b></p>",
+        choices: choiceList(entry.a, entry.x)
+      };
+    }
+  };
+  function makeQuestion(entry, rnd, forcedType) {
+    const types = questionTypes(entry);
+    const type = forcedType || types[Math.floor(rnd() * types.length)];
+    const others = shuffle(distractorPool(entry), rnd).slice(0, 2);
+    const built = QUESTION_BUILDERS[type](entry, others, rnd);
+    return {
+      entry, type, promptHtml: built.promptHtml, choices: built.choices,
+      heading: GAME_DATA.genres[entry.t] || "", hard: entry.hard,
+      phrase: { word: entry.w, meaning: entry.m, note: entry.note, t: entry.t }
+    };
+  }
+
+  // ---- データの確認 ----
+  function showError(message) {
+    app.innerHTML = '<div class="card error"><h2>ことばのデータの書き方に誤りがあります</h2><p>' + escapeHtml(message) + "</p></div>";
+  }
+  // なぜ？クイズの書き方を確かめる
+  function checkQuiz(e, n) {
+    if (e.q === undefined && e.a === undefined && e.x === undefined) return null;
+    if (typeof e.q !== "string" || typeof e.a !== "string" || !e.q || !e.a) return n + "クイズは q（問題文）と a（正しい答え）の両方を \" \" でかこんで書いてください。";
+    if (!Array.isArray(e.x) || e.x.length !== 2 || e.x.some(s => typeof s !== "string" || !s)) return n + "x は [\"まちがいの答え\", \"まちがいの答え\"] の2つにしてください。";
+    if (new Set([e.a].concat(e.x)).size !== 3) return n + "クイズの答えの中に、同じものがあります。";
+    return null;
+  }
+  // 1つのことばの書き方を確かめる（seen は、もう出てきたことばの記録）
+  function checkEntry(e, n, seen) {
+    if (!e || !e.w || !e.m) return n + "w（ことば）か m（説明）がありません。";
+    if (!GAME_DATA.genres[e.t]) return n + "t は " + Object.keys(GAME_DATA.genres).map(k => "\"" + k + "\"").join("、") + " のどれかにしてください。";
+    const key = plain(e.w);
+    if (seen[key]) return n + "同じことばが2回書かれています。";
+    seen[key] = true;
+    if (/[{}|]/.test(plain(e.w))) return n + "ふりがなの書き方 {漢字|かんじ} がくずれています。";
+    if (e.note !== undefined && typeof e.note !== "string") return n + "note は \" \" でかこんだ文にしてください。";
+    const quizError = checkQuiz(e, n);
+    if (quizError) return quizError;
+    if (distractorPool(e).length < 2) return n + "同じジャンルに、まちがいの選択肢に使えることばが足りません。";
+    return null;
+  }
+  // 説明がまったく同じことばは、same で仲間にしないと正解が2つになる
+  function checkSameMeaning() {
+    const byMeaning = {};
+    for (const e of STOCK) {
+      const k = e.t + ":" + e.m;
+      if (byMeaning[k] && !(e.same && byMeaning[k].same === e.same)) return "「" + plain(e.w) + "」と「" + plain(byMeaning[k].w) + "」の説明が同じです。same で仲間にしてください。";
+      byMeaning[k] = e;
+    }
+    return null;
+  }
+  function checkData() {
+    if (typeof GAME_DATA === "undefined" || typeof STOCK === "undefined" || !Array.isArray(STOCK)) {
+      return "データ全体が読み込めませんでした。「\"」「,」「{ }」「[ ]」が消えていないか確認してください。";
+    }
+    const seen = {};
+    for (let i = 0; i < STOCK.length; i++) {
+      const e = STOCK[i];
+      const entryError = checkEntry(e, (i + 1) + "番目（" + plain(e && e.w) + "）：", seen);
+      if (entryError) return entryError;
+    }
+    return checkSameMeaning();
+  }
+
+  const err = checkData();
+  if (err) { showError(err); return; }
+
+  const D = GAME_DATA;
+  const isDaily = new URLSearchParams(location.search).get("mode") === "daily";
+  let playQs = [];
+  let playRnd = Math.random;
+  let playDay = today(); // 遊び始めた日（夜0時をまたいでも、この日のおつかいとして記録する）
+  let answers = [];
+  let newWords = [];
+  let current = 0;
+  let playGenre = ""; // えらんだジャンル（"" は全部のジャンル）
+
+  // ---- まちの記録（この端末のブラウザの中だけに保存） ----
+  const STORE_KEY = "machi-game-v1";
+  function loadStore() {
+    try {
+      // 記録がこわれていても止まらないように、形がちがうものは空にしてから使う
+      const isObject = v => !!v && typeof v === "object" && !Array.isArray(v);
+      let s = JSON.parse(localStorage.getItem(STORE_KEY));
+      if (!isObject(s)) s = {};
+      if (!isObject(s.words)) s.words = {};
+      if (!isObject(s.catalog)) s.catalog = {};
+      s.people = Number(s.people) || 0;
+      s.turn = Number(s.turn) || 0;
+      return s;
+    } catch (e) { return { words: {}, catalog: {}, people: 0, turn: 0 }; }
+  }
+  function saveStore(s) {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch (e) { /* 保存できない環境では記録しない */ }
+  }
+  function isLearned(s, entry) { return !!s.words[plain(entry.w)]; }
+  function registerCatalog() {
+    const s = loadStore();
+    // note（解説）は、まちの「ことば図鑑」では「ちがい」の欄に出てしまうので、いまは送らない
+    s.catalog[D.gameId] = { title: D.title, words: STOCK.map(e => ({ word: e.w, meaning: e.m, same: e.same || "", note: "" })) };
+    saveStore(s);
+  }
+  function learnWord(entry) {
+    const s = loadStore();
+    if (isLearned(s, entry)) return;
+    s.words[plain(entry.w)] = { gameId: D.gameId, word: entry.w, meaning: entry.m };
+    saveStore(s);
+    newWords.push({ word: entry.w, meaning: entry.m });
+  }
+  registerCatalog();
+
+  // ---- まちの名前（まちの地図と同じ名前を出して、このゲームが自分のまちの施設だとわかるようにする） ----
+  // 覚えたことばの数で、まちの呼び名が変わる（index.html の townLevels と同じにしてください）
+  const TOWN_LEVELS = [
+    { minWords: 0,   suffix: "はらっぱ" },
+    { minWords: 1,   suffix: "{村|むら}" },
+    { minWords: 3,   suffix: "{町|まち}" },
+    { minWords: 6,   suffix: "{市|し}" },
+    { minWords: 12,  suffix: "{大都市|だいとし}" },
+    { minWords: 30,  suffix: "{未来都市|みらいとし}" },
+    { minWords: 100, suffix: "{世界一|せかいいち}のまち" }
+  ];
+  function townInfo() {
+    const s = loadStore();
+    const learned = Object.keys(s.words).length;
+    let level = 0;
+    TOWN_LEVELS.forEach((lv, i) => { if (learned >= lv.minWords) level = i; });
+    return { name: s.townName || "まんまる", level };
+  }
+  // 例：maru町（ふりがなつき）
+  function townHtml(t) {
+    t = t || townInfo();
+    return escapeHtml(t.name) + rich(TOWN_LEVELS[t.level].suffix);
+  }
+  // 左上の「戻る」：はじめの画面では まちの地図へ、問題や結果の画面では このゲームのはじめの画面へ
+  function refreshBackLink(inGame) {
+    const a = document.getElementById("backLink");
+    if (inGame) {
+      a.innerHTML = "← " + rich(D.shopName) + rich("へ{戻|もど}る");
+      a.onclick = e => { e.preventDefault(); showStart(); };
+    } else {
+      a.innerHTML = "← " + townHtml() + rich("へ{戻|もど}る");
+      a.onclick = null;
+    }
+  }
+  let townBefore = townInfo(); // 遊ぶ前のまち（育ったかどうかをくらべるため）
+
+  // ---- 画面の部品 ----
+  // ジャンルの小さな絵と、絵＋名前
+  function genreIcon(g) {
+    return '<svg class="gicon g-' + g + '" aria-hidden="true" focusable="false"><use href="#gi-' + g + '"/></svg>';
+  }
+  function genreLabel(g) { return genreIcon(g) + rich(D.genres[g]); }
+
+  // まちの断面図（地上と地下）。ジャンルごとの部分を押すと、そのジャンルで遊べる
+  // 座標は、よこ 360 × たて 230 のマス目。地面は y=108、道路は y=113〜124、そこから下が地下
+  function crossSectionSvg(s) {
+    const pm = "fill:var(--pm)", pl = "fill:var(--pl)", ink = "fill:var(--ill-ink)", paper = "fill:var(--ill-paper)";
+    const hit = (x, y, w, h) => '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="transparent"/>';
+    const part = (g, body) => {
+      const lit = genreEntries(g).some(e => isLearned(s, e));
+      return '<g class="part g-' + g + (lit ? "" : " dim") + '" data-part="' + g + '" filter="url(#cut)" role="button" tabindex="0" aria-label="' +
+        escapeHtml(plain(D.genres[g])) + 'であそぶ"><title>' + escapeHtml(plain(D.genres[g])) + "</title>" + body + "</g>";
+    };
+    let dashes = "";
+    for (let x = 6; x < 280; x += 28) dashes += "M" + x + " 118.5h14";
+    let stripes = "";
+    for (let x = 287; x < 307; x += 5) stripes += '<rect x="' + x + '" y="113" width="3" height="11" style="' + paper + '" opacity=".85"/>';
+    let rungs = "";
+    for (let y = 130; y < 190; y += 9) rungs += "M146 " + y + "h8";
+
+    return '<svg class="scene" viewBox="0 0 360 230" role="group" aria-label="まちの断面図">' +
+      '<defs><filter id="cut" x="-5%" y="-5%" width="115%" height="120%"><feDropShadow dx="2" dy="2" stdDeviation="0" style="flood-color:var(--ill-shadow)"/></filter></defs>' +
+      // 空・草・土
+      '<rect width="360" height="113" style="fill:var(--ill-sky)"/>' +
+      '<path d="M226 30c0-7 9-9 12-4 3-6 14-5 14 2 6 0 7 8 1 9h-25c-4 0-5-6-2-7z" style="' + paper + '"/>' +
+      '<circle cx="28" cy="24" r="10" style="fill:var(--ill-roof)" opacity=".6"/>' +
+      '<rect y="104" width="360" height="10" style="fill:var(--ill-grass)"/>' +
+      '<rect y="124" width="360" height="106" style="fill:var(--ill-soil)"/>' +
+      '<path d="M0 182q90-8 180 0t180 0V230H0z" style="fill:var(--ill-soil2)"/>' +
+      // 家（どのジャンルでもない、ふつうの家）
+      '<g filter="url(#cut)">' +
+        '<path d="M14 108V82h34v26z" style="' + paper + '"/><path d="M10 84l21-18 21 18z" style="fill:var(--ill-roof)"/>' +
+        '<path d="M26 95h8v13h-8z" style="' + ink + '"/><path d="M38 89h6v6h-6z" style="fill:var(--ill-roof2)"/>' +
+        '<path d="M56 108V88h26v20z" style="' + paper + '"/><path d="M52 90l17-14 17 14z" style="fill:var(--ill-roof2)"/>' +
+        '<path d="M62 94h7v7h-7z" style="fill:var(--ill-sky)"/>' +
+      "</g>" +
+      // 道路・橋：道路と信号機と横断歩道
+      part("road",
+        hit(0, 100, 360, 26) + hit(306, 60, 32, 44) +
+        '<rect y="113" width="360" height="11" style="' + pm + '"/>' +
+        '<path d="' + dashes + '" style="fill:none;stroke:var(--ill-paper);stroke-width:1.6"/>' + stripes +
+        '<rect x="320" y="72" width="3" height="41" style="' + ink + '"/>' +
+        '<rect x="309" y="64" width="25" height="10" rx="3" style="' + pm + '"/>' +
+        '<circle cx="315" cy="69" r="2.6" style="' + pl + '"/><circle cx="321.5" cy="69" r="2.6" style="' + pl + '"/><circle cx="328" cy="69" r="2.6" style="' + pl + '"/>') +
+      // 下水：太い下水管、マンホールとたて穴、家からの排水管
+      part("sewer",
+        hit(0, 186, 360, 28) + hit(138, 112, 24, 78) +
+        '<rect x="22" y="108" width="4" height="84" style="' + pm + '"/>' +
+        '<rect x="143" y="124" width="14" height="68" style="' + pl + '"/>' +
+        '<path d="' + rungs + '" style="fill:none;stroke:var(--pm);stroke-width:1.6"/>' +
+        '<rect x="0" y="190" width="360" height="20" rx="10" style="' + pm + '"/>' +
+        '<rect x="0" y="198" width="360" height="5" style="' + pl + '"/>' +
+        '<ellipse cx="150" cy="118.5" rx="11" ry="3.6" style="' + pm + '"/>') +
+      // 水道：水道管、家への管、給水塔
+      part("water",
+        hit(0, 132, 360, 15) + hit(186, 50, 44, 60) +
+        '<rect x="40" y="108" width="4" height="30" style="' + pm + '"/>' +
+        '<rect x="207" y="76" width="4" height="62" style="' + pm + '"/>' +
+        '<rect x="0" y="136" width="360" height="8" rx="4" style="' + pm + '"/>' +
+        '<rect x="0" y="137.5" width="360" height="2" style="' + pl + '"/>' +
+        '<path d="M196 108l6-30M222 108l-6-30M199 95h20" style="fill:none;stroke:var(--ill-ink);stroke-width:2.2"/>' +
+        '<path d="M192 58q17-10 34 0v20h-34z" style="' + pm + '"/>' +
+        '<rect x="192" y="64" width="34" height="3" style="' + pl + '"/>' +
+        '<path d="M209 68.5c-2 3-3 4-3 5.5a3 3 0 0 0 6 0c0-1.5-1-2.5-3-5.5z" style="' + paper + '"/>') +
+      // ガス：ガス管と、家へのガス管・ガスメーター
+      part("gas",
+        hit(0, 148, 360, 13) +
+        '<rect x="68" y="100" width="3.5" height="54" style="' + pm + '"/>' +
+        '<rect x="64" y="98" width="11" height="8" rx="1.5" style="' + pl + '"/>' +
+        '<rect x="0" y="152" width="360" height="6" rx="3" style="' + pm + '"/>') +
+      // 通信：通信ケーブル、地下のトンネル（とう道）、アンテナ（基地局）
+      part("comm",
+        hit(0, 162, 360, 13) + hit(236, 24, 40, 86) +
+        '<rect x="254" y="108" width="2.5" height="60" style="' + pm + '"/>' +
+        '<rect x="0" y="166" width="360" height="5" style="' + pm + '"/>' +
+        '<path d="M4 168.5h356" style="fill:none;stroke:var(--pl);stroke-width:1.4;stroke-dasharray:6 5"/>' +
+        '<circle cx="300" cy="168.5" r="9" style="fill:var(--pl);stroke:var(--pm);stroke-width:2.5"/>' +
+        '<path d="M255 40l9 68h-4.5l-4.5-40-4.5 40H246z" style="' + pm + '"/>' +
+        '<circle cx="255" cy="40" r="3.2" style="' + pm + '"/>' +
+        '<path d="M247 34a10 10 0 0 0 0 12M263 34a10 10 0 0 1 0 12M242 30a16 16 0 0 0 0 20M268 30a16 16 0 0 1 0 20" style="fill:none;stroke:var(--pm);stroke-width:2;stroke-linecap:round"/>') +
+      // 電気：電柱2本と電線、柱上変圧器
+      part("power",
+        hit(88, 24, 94, 86) +
+        '<path d="M95 50Q130 66 165 50M114 50Q149 66 184 50M95 50Q70 60 48 76" style="fill:none;stroke:var(--pm);stroke-width:1.3"/>' +
+        '<rect x="102" y="44" width="5" height="64" style="' + pm + '"/><rect x="94" y="48" width="21" height="3" style="' + ink + '"/>' +
+        '<rect x="107" y="58" width="8" height="10" rx="1.5" style="' + pl + '"/>' +
+        '<rect x="172" y="44" width="5" height="64" style="' + pm + '"/><rect x="164" y="48" width="21" height="3" style="' + ink + '"/>' +
+        '<path d="M140 22l-5 8h4l-2 7 7-10h-4l2-5z" style="' + pm + '"/>') +
+      // くらしと防災：ひなん所の旗と、備蓄の箱
+      part("bousai",
+        hit(278, 58, 30, 52) +
+        '<rect x="282" y="64" width="2.5" height="44" style="' + ink + '"/>' +
+        '<path d="M284.5 64h18l-4 6 4 6h-18z" style="' + pm + '"/>' +
+        '<rect x="288" y="92" width="17" height="15" rx="2" style="fill:var(--pl);stroke:var(--pm);stroke-width:2"/>' +
+        '<path d="M296.5 95v9M292 99.5h9" style="fill:none;stroke:var(--pm);stroke-width:2"/>') +
+      "</svg>";
+  }
+  // 断面図の上に出す名前の札（x, y は断面図のマス目の位置。札のまん中がここにくる）
+  const SCENE_LABELS = [
+    { g: "water",  name: "{水道管|すいどうかん}",           x: 100, y: 140 },
+    { g: "water",  name: "{給水塔|きゅうすいとう}",         x: 209, y: 100 },
+    { g: "sewer",  name: "{下水管|げすいかん}",             x: 100, y: 200 },
+    { g: "gas",    name: "ガス{管|かん}",                   x: 330, y: 155 },
+    { g: "comm",   name: "{通信|つうしん}ケーブル",         x: 190, y: 168 },
+    { g: "comm",   name: "アンテナ",                        x: 255, y: 13 },
+    { g: "power",  name: "{電柱|でんちゅう}・{電線|でんせん}", x: 140, y: 84 },
+    { g: "road",   name: "{道路|どうろ}",                   x: 180, y: 118.5 },
+    { g: "bousai", name: "ひなん{所|じょ}",                 x: 296, y: 54 }
+  ];
+  function sceneTagsHtml(s) {
+    return SCENE_LABELS.map(l => {
+      const lit = genreEntries(l.g).some(e => isLearned(s, e));
+      return '<span class="scene-tag g-' + l.g + (lit ? "" : " dim") + '" data-g="' + l.g + '" aria-hidden="true" style="left:' +
+        (l.x / 360 * 100).toFixed(1) + "%;top:" + (l.y / 230 * 100).toFixed(1) + '%">' + rich(l.name) + "</span>";
+    }).join("");
+  }
+  // 断面図の部分にマウスをのせた・押したときに、同じジャンルの札を目立たせる
+  function highlightTags(g, on) {
+    app.querySelectorAll('.scene-tag[data-g="' + g + '"]').forEach(t => t.classList.toggle("active", on));
+  }
+  function crossSectionHtml(s) {
+    const lit = Object.keys(D.genres).filter(g => genreEntries(g).some(e => isLearned(s, e))).length;
+    return '<div class="card cross"><div class="scene-wrap">' + crossSectionSvg(s) + sceneTagsHtml(s) + "</div>" +
+      '<p class="caption">' + rich("ことばを{覚|おぼ}えたジャンルに{色|いろ}がつくよ（") + lit + " / " + Object.keys(D.genres).length +
+      rich("）。{絵|え}を{押|お}しても{遊|あそ}べるよ。") + "</p></div>";
+  }
+  // 断面図の部分を押したとき：ぴょんとはねてから、そのジャンルで始める
+  function setupCrossSection() {
+    app.querySelectorAll(".part[data-part]").forEach(el => {
+      const g = el.dataset.part;
+      // 押したら、名前の札を目立たせて、ぴょんとはねてから始める（札が読めるよう、少しだけ待つ）
+      const go = () => {
+        if (el.classList.contains("pressing")) return;
+        highlightTags(g, true);
+        const reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (reduce) { setTimeout(() => startPlay(g), 400); return; }
+        el.classList.add("pressing");
+        setTimeout(() => startPlay(g), 650);
+      };
+      el.addEventListener("mouseenter", () => highlightTags(g, true));
+      el.addEventListener("mouseleave", () => { if (!el.classList.contains("pressing")) highlightTags(g, false); });
+      el.addEventListener("focus", () => highlightTags(g, true));
+      el.addEventListener("blur", () => highlightTags(g, false));
+      el.addEventListener("click", go);
+      el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+    });
+  }
+
+  function phraseHtml(p) {
+    if (!p || !p.word) return "";
+    return '<div class="phrase"><div class="label">' + (p.t ? genreIcon(p.t) : "") + "きょうのことば</div><div class=\"word\">" + rich(p.word) +
+      "</div><div>" + escapeHtml(p.meaning || "") + "</div>" +
+      (p.note ? '<div class="note">' + rich("💡 なるほど{解説|かいせつ}：") + escapeHtml(p.note) + "</div>" : "") +
+      "</div>";
+  }
+  function top() { window.scrollTo(0, 0); }
+  function seasonLabel(i) { return SEASON_ICONS[i] + " " + rich(SEASONS[i]); }
+  // 説明の文（w2m の選択肢）にはふりがなの書き方がないので、そのまま出す
+  function choiceLabelHtml(q, label) { return q.type === "w2m" ? escapeHtml(label) : rich(label); }
+
+  // えらんだジャンルのことば（playGenre が "" のときは全部）
+  function genreEntries(genre) { return genre ? STOCK.filter(e => e.t === genre) : STOCK; }
+  // この回のことばをえらぶ（まだ覚えていないことばを先に出す）
+  function pickEntries(rnd) {
+    if (isDaily) return [STOCK[Math.floor(rnd() * STOCK.length)]];
+    const s = loadStore();
+    const pool = genreEntries(playGenre);
+    const fresh = shuffle(pool.filter(e => !isLearned(s, e)), rnd);
+    const known = shuffle(pool.filter(e => isLearned(s, e)), rnd);
+    return fresh.concat(known).slice(0, D.count || 5);
+  }
+  function startPlay(genre) {
+    if (typeof genre === "string") playGenre = genre;
+    townBefore = townInfo();
+    playDay = today();
+    playRnd = isDaily ? seededRandom(playDay + ":" + D.gameId) : Math.random;
+    playQs = pickEntries(playRnd).map(e => makeQuestion(e, playRnd));
+    answers = []; newWords = []; current = 0;
+    showQuestion();
+  }
+
+  // ---- はじめ ----
+  function dailyIntroHtml(s) {
+    const done = s.dailyDone === today();
+    return "<h1>" + rich("{今日|きょう}のおつかい") + "</h1>" +
+      "<p>" + rich("{今日|きょう}だけの1{問|もん}。{正解|せいかい}すると、") + townHtml() + rich("の{人口|じんこう}が") + "<b>" + (D.peopleDailyBonus || 0) + rich("{人|にん}") + "</b>" + rich("ふえるよ（1{日|にち}1{回|かい}）。") + "</p>" +
+      (done ? '<p class="muted">' + rich("{今日|きょう}のおつかいは、もうやったよ。{遊|あそ}べるけれど、{人口|じんこう}はふえないよ。また{明日|あした}！") + "</p>" : "");
+  }
+  function normalIntroHtml(s) {
+    return '<h1 class="puni">' + rich(D.title) + "</h1>" +
+      "<p>" + townHtml() + rich("のくらしをささえる、") + rich(D.howToPlay) + "</p>" +
+      '<p class="muted">' + rich("いまの") + townHtml() + rich("の{季節|きせつ}：") + seasonLabel(s.turn % 4) + "</p>";
+  }
+  // 覚えた数の表示（例：3 / 15 こ覚えた）
+  function countHtml(s, genre) {
+    const list = genreEntries(genre);
+    return '<span class="count">' + list.filter(e => isLearned(s, e)).length + " / " + list.length + rich(" こ{覚|おぼ}えた") + "</span>";
+  }
+  // ジャンルえらびのボタン（いちばん上は「ぜんぶのジャンル」）
+  function genreButtonsHtml(s) {
+    return '<h2>' + rich("ジャンルをえらんでね") + "</h2>" +
+      '<button class="btn primary" type="button" data-genre="">' + rich("ぜんぶのジャンル") + countHtml(s, "") + "</button>" +
+      '<div class="genre-list">' +
+        Object.keys(D.genres).map(g =>
+          '<button class="btn g g-' + g + '" type="button" data-genre="' + g + '">' + genreLabel(g) + countHtml(s, g) + "</button>"
+        ).join("") +
+      "</div>";
+  }
+  function showStart() {
+    document.title = plain(D.title);
+    const s = loadStore();
+    const info = isDaily ? dailyIntroHtml(s) : normalIntroHtml(s);
+    refreshBackLink();
+    app.innerHTML =
+      '<div class="card"><p class="muted">' + townHtml() + " " + rich(D.shopName || "") + "</p>" + info + "</div>" +
+      (isDaily ? '<button class="btn primary" id="startBtn" type="button">はじめる</button>' : crossSectionHtml(s) + genreButtonsHtml(s));
+    if (isDaily) document.getElementById("startBtn").onclick = () => startPlay("");
+    app.querySelectorAll("[data-genre]").forEach(btn => { btn.onclick = () => startPlay(btn.dataset.genre); });
+    if (!isDaily) setupCrossSection();
+    top();
+  }
+
+  // ---- 問題 ----
+  function isLastQuestion() { return current === playQs.length - 1; }
+  function progressPercent(done) { return done / playQs.length * 100; }
+  function questionHtml(q, choices) {
+    return '<div class="progress-text">' + rich((current + 1) + " / " + playQs.length + " {問目|もんめ}") + "</div>" +
+      '<div class="progress"><div style="width:' + progressPercent(current) + '%"></div></div>' +
+      '<div class="card g g-' + q.entry.t + '">' +
+        '<div class="industry g g-' + q.entry.t + '">' + genreIcon(q.entry.t) + rich(q.heading) + "</div>" +
+        (q.hard ? ' <div class="hard">' + rich("★むずかしい") + "</div>" : "") +
+        q.promptHtml +
+      "</div>" +
+      '<div id="choices">' +
+        choices.map((c, i) => '<button class="btn" type="button" data-i="' + i + '">' + choiceLabelHtml(q, c.label) + "</button>").join("") +
+      "</div>" +
+      '<div id="feedback"></div>';
+  }
+  function feedbackHtml(q, chosen) {
+    const right = q.choices.find(c => c.points === 3);
+    const fb = D.feedback || {};
+    return '<div class="card">' +
+        '<p class="feedback p' + chosen.points + '">' + rich(fb[chosen.points] || chosen.points + "点") + "</p>" +
+        (chosen.points !== 3 ? "<p><b>" + rich("{正解|せいかい}：") + "</b>" + choiceLabelHtml(q, right.label) + "</p>" : "") +
+        phraseHtml(q.phrase) +
+      "</div>" +
+      '<button class="btn primary" id="nextBtn" type="button">' + rich(isLastQuestion() ? "{結果|けっか}を{見|み}る" : "つぎへ") + "</button>";
+  }
+  function goNext() {
+    if (isLastQuestion()) { showResult(); } else { current++; showQuestion(); }
+  }
+  function choose(q, chosen, btn) {
+    answers[current] = chosen;
+    if (chosen.points === 3) learnWord(q.entry);
+    app.querySelectorAll("#choices .btn").forEach(b => { b.disabled = true; });
+    btn.classList.add("chosen");
+    app.querySelector(".progress > div").style.width = progressPercent(current + 1) + "%";
+    document.getElementById("feedback").innerHTML = feedbackHtml(q, chosen);
+    const next = document.getElementById("nextBtn");
+    next.onclick = goNext;
+    next.scrollIntoView({ behavior: "smooth", block: "end" });
+  }
+  function showQuestion() {
+    const q = playQs[current];
+    const choices = shuffle(q.choices, playRnd);
+    refreshBackLink(true);
+    app.innerHTML = questionHtml(q, choices);
+    app.querySelectorAll("#choices .btn").forEach(btn => {
+      btn.onclick = () => choose(q, choices[Number(btn.dataset.i)], btn);
+    });
+    top();
+  }
+
+  // ---- まちの記録を進める（人口・季節・今日のおつかい） ----
+  function peopleAddedNews(n) {
+    return townHtml(townBefore) + rich("の{人口|じんこう}が") + "<b>" + n + "</b>" + rich("{人|にん}ふえた！");
+  }
+  function updateDailyTown(s, correctCount) {
+    const firstToday = s.dailyDone !== playDay;
+    s.dailyDone = playDay;
+    if (firstToday && correctCount > 0) {
+      s.people += D.peopleDailyBonus || 0;
+      return [peopleAddedNews(D.peopleDailyBonus || 0)];
+    }
+    if (!firstToday) return [rich("{今日|きょう}のおつかいは2{回目|かいめ}なので、{人口|じんこう}はふえないよ。")];
+    return [];
+  }
+  function updatePlayTown(s, correctCount) {
+    const news = [];
+    const add = correctCount * (D.peoplePerCorrect || 0);
+    s.people += add;
+    if (add > 0) news.push(peopleAddedNews(add));
+    s.turn += 1;
+    news.push(townHtml(townBefore) + rich("の{季節|きせつ}が") + " " + seasonLabel(s.turn % 4) + " " + rich("になった。"));
+    return news;
+  }
+  function updateTown(correctCount) {
+    const s = loadStore();
+    const news = isDaily ? updateDailyTown(s, correctCount) : updatePlayTown(s, correctCount);
+    news.push(rich("いまの{人口|じんこう}：") + "<b>" + s.people.toLocaleString("ja-JP") + "</b>" + rich("{人|にん}"));
+    saveStore(s);
+    // ことばを覚えて、まちが育ったとき
+    const townAfter = townInfo();
+    if (townAfter.level > townBefore.level) {
+      news.push("<b>" + rich("🎉 まちが「") + townHtml(townAfter) + rich("」に{育|そだ}った！") + "</b> " + rich("まちの{地図|ちず}で{見|み}てみよう。"));
+    }
+    return news;
+  }
+
+  // ---- 結果 ----
+  function resultMessage(total) {
+    const msg = D.results.slice().sort((a, b) => b.minPoints - a.minPoints).find(r => total >= r.minPoints);
+    return msg ? msg.message : "";
+  }
+  function scoreCardHtml(total) {
+    return '<div class="card" style="text-align:center">' +
+        '<p class="muted">' + rich("{結果|けっか}") + "</p>" +
+        '<p class="score">' + total + " / " + playQs.length * 3 + rich("{点|てん}") + "</p>" +
+        (isDaily ? "" : "<h2>" + rich(resultMessage(total)) + "</h2>") +
+      "</div>";
+  }
+  function townNewsHtml(news) {
+    return '<div class="card town-news"><h2>' + rich("まちのニュース") + "</h2>" + news.map(n => "<p>" + n + "</p>").join("") + "</div>";
+  }
+  function newWordsHtml() {
+    if (!newWords.length) return "";
+    return '<div class="card"><h2>' + rich("{新|あたら}しく{覚|おぼ}えたことば") + "</h2>" + newWords.map(phraseHtml).join("") + "</div>";
+  }
+  function recapHtml(q, i) {
+    const c = answers[i];
+    return '<div class="card recap">' +
+        "<h3>" + (i + 1) + ". " + rich(q.entry.w) + ' <b class="p' + c.points + '">（' + c.points + rich("{点|てん}") + "）</b></h3>" +
+        '<p class="muted">' + escapeHtml(q.entry.m) + "</p>" +
+      "</div>";
+  }
+  function resultButtonsHtml() {
+    const genreName = playGenre ? D.genres[playGenre] : "ぜんぶのジャンル";
+    return (isDaily ? "" :
+        '<button class="btn primary" id="againBtn" type="button">' + rich("もう{一度|いちど}あそぶ（" + genreName + "）") + "</button>" +
+        '<button class="btn secondary" id="chooseBtn" type="button">' + rich("ジャンルをえらびなおす") + "</button>") +
+      '<a class="btn secondary" href="index.html" style="text-decoration:none">' + townHtml() + rich("へ{戻|もど}る（{地図|ちず}）") + "</a>";
+  }
+  function showResult() {
+    const total = answers.reduce((s, c) => s + c.points, 0);
+    const correct = answers.filter(c => c.points === 3).length;
+    const news = updateTown(correct);
+    refreshBackLink(true);
+    app.innerHTML =
+      scoreCardHtml(total) +
+      townNewsHtml(news) +
+      newWordsHtml() +
+      playQs.map(recapHtml).join("") +
+      resultButtonsHtml();
+    if (!isDaily) {
+      document.getElementById("againBtn").onclick = () => startPlay(playGenre);
+      document.getElementById("chooseBtn").onclick = showStart;
+    }
+    top();
+  }
+
+  // 自動チェック用（画面には関係しない）
+  window.__infra = { STOCK, makeQuestion, checkData, plain, seededRandom };
+
+  showStart();
+})();
+</script>
+</body>
+</html>

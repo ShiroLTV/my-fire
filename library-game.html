@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ことばの図書館</title>
+
+<script>
+/* ===== ここからことばのデータ（文章はここだけ直してください） =====
+   ・STOCK が「ストック問題」のもとになることばの一覧です。ここから毎回くじで問題がつくられます
+   ・w：ことば。{漢字|かんじ} と書くと、漢字の上にふりがなが出ます
+     四字熟語は {一|いっ}{石|せき}{二|に}{鳥|ちょう} のように1字ずつふりがなをつけます（□問題で、読み方も□にするため）
+   ・m：意味（子ども向けの言い方で、ふりがなはつけない）
+   ・t："yoji"（四字熟語）か "kotowaza"（ことわざ・故事成語・慣用句）
+   ・hard: true と書くと「★むずかしい」の印がつきます
+   ・fill：ことわざの「□に入る漢字」問題に使う ["正しい字", "まちがいの字", "まちがいの字"]
+     正しい字には、{三|さん}{年|ねん} のように、その字だけのふりがなをつけます
+   ・same：意味がにていることば同士に同じ名前をつけると、同じ問題の選択肢にならびません
+   ・note：にていることばとのちがいなど、ことば図鑑に出す一言（なくてもよい。ふりがなはつけない）
+   ・意味の参考にしたサイト：くろご式ことわざ辞典（tomomi965.com）、四字熟語辞典（hanntaigo.main.jp）
+     意味の文章はサイトの文をそのまま使わず、子ども向けに書き直しています
+*/
+const GAME_DATA = {
+  gameId: "library",   // まちの地図の駅と同じ id（変えないでください）
+  title: "ことばの{図書館|としょかん}",
+  shopName: "{図書館|としょかん}",
+  howToPlay: "{四字熟語|よじじゅくご}やことわざの{問題|もんだい}が、{毎回|まいかい}くじで5{問|もん}{出|で}るよ。{正解|せいかい}したことばは「{覚|おぼ}えたことば」になって、まちが{育|そだ}つよ。",
+  count: 5,
+  typeNames: { yoji: "{四字熟語|よじじゅくご}", kotowaza: "ことわざ" },
+  feedback: {
+    3: "3点！ {正解|せいかい}！",
+    0: "0点 ざんねん"
+  },
+  results: [
+    { minPoints: 13, message: "すごい！ ことば{博士|はかせ}！" },
+    { minPoints: 8,  message: "なかなかのことば{名人|めいじん}！" },
+    { minPoints: 0,  message: "これからどんどん{覚|おぼ}えよう！" }
+  ],
+  peoplePerCorrect: 10,
+  peopleDailyBonus: 30
+};
+
+const STOCK = [
+  /* ---- 四字熟語 ---- */
+  { t: "yoji", w: "{暗|あん}{中|ちゅう}{模|も}{索|さく}", m: "手がかりのないまま、あれこれためしながらさがすこと", hard: true, same: "mayoi", note: "「試行錯誤」とのちがい：暗中模索は、手がかりがなくて先が見えない状態。試行錯誤は、失敗しながら少しずつよい方法に近づいていくこと。" },
+  { t: "yoji", w: "{意|い}{気|き}{投|とう}{合|ごう}", m: "おたがいの気持ちや考えが、ぴったり合うこと", note: "「以心伝心」とのちがい：意気投合は、話してみて気が合うこと。以心伝心は、言葉にしなくても気持ちが伝わること。" },
+  { t: "yoji", w: "{異|い}{口|く}{同|どう}{音|おん}", m: "大ぜいの人が、口をそろえて同じことを言うこと" },
+  { t: "yoji", w: "{以|い}{心|しん}{伝|でん}{心|しん}", m: "言葉にしなくても、気持ちが相手につたわること", note: "「意気投合」とのちがい：以心伝心は、言葉にしなくても気持ちが伝わること。意気投合は、話してみて気が合うこと。" },
+  { t: "yoji", w: "{一|いち}{意|い}{専|せん}{心|しん}", m: "ほかのことを考えず、一つのことに心を集中すること", hard: true, same: "shuchu" },
+  { t: "yoji", w: "{一|いち}{期|ご}{一|いち}{会|え}", m: "一生に一度の出会いだと思って、心をこめること", note: "「千載一遇」とのちがい：一期一会は、人との出会いを大切にする心がまえのこと。千載一遇は、めったにないチャンスのこと。" },
+  { t: "yoji", w: "{一|いち}{日|じつ}{千|せん}{秋|しゅう}", m: "一日が千年にも感じられるほど、待ち遠しいこと", hard: true },
+  { t: "yoji", w: "{一|いち}{念|ねん}{発|ほっ}{起|き}", m: "何かをやりとげようと、強く決心すること", note: "「心機一転」とのちがい：一念発起は、何かをやりとげようと決心すること。心機一転は、きっかけがあって気持ちを新しくすること。" },
+  { t: "yoji", w: "{一|いち}{部|ぶ}{始|し}{終|じゅう}", m: "始めから終わりまで、すべてのこと" },
+  { t: "yoji", w: "{一|いっ}{喜|き}{一|いち}{憂|ゆう}", m: "ようすが変わるたびに、喜んだり心配したりすること" },
+  { t: "yoji", w: "{一|いっ}{挙|きょ}{両|りょう}{得|とく}", m: "一つのことをして、二つの得をすること", same: "ittoku" },
+  { t: "yoji", w: "{一|いっ}{進|しん}{一|いっ}{退|たい}", m: "進んだりもどったりして、なかなか先へ進まないこと" },
+  { t: "yoji", w: "{一|いっ}{心|しん}{同|どう}{体|たい}", m: "二人以上の人が、心も体も一つのように強くむすびつくこと", same: "kyouryoku" },
+  { t: "yoji", w: "{一|いっ}{心|しん}{不|ふ}{乱|らん}", m: "ほかのことに気をとられず、一つのことに打ちこむこと", same: "shuchu" },
+  { t: "yoji", w: "{一|いっ}{石|せき}{二|に}{鳥|ちょう}", m: "一つのことで、二つのよいことが起きること", same: "ittoku" },
+  { t: "yoji", w: "{一|いっ}{朝|ちょう}{一|いっ}{夕|せき}", m: "ひと朝かひと晩のような、とても短い時間", hard: true },
+  { t: "yoji", w: "{一|いっ}{長|ちょう}{一|いっ}{短|たん}", m: "よいところもあれば、よくないところもあること" },
+  { t: "yoji", w: "{一|いっ}{刀|とう}{両|りょう}{断|だん}", m: "思いきって、すっぱりと物事を決めること", note: "「単刀直入」とのちがい：一刀両断は、まよわず物事を決めること。単刀直入は、前置きなしで話の本題に入ること。" },
+  { t: "yoji", w: "{因|いん}{果|が}{応|おう}{報|ほう}", m: "よい行いにはよい結果が、悪い行いには悪い結果が返ってくること", hard: true, same: "mukui" },
+  { t: "yoji", w: "{右|う}{往|おう}{左|さ}{往|おう}", m: "あわてて、あっちへ行ったりこっちへ行ったりすること" },
+  { t: "yoji", w: "{栄|えい}{枯|こ}{盛|せい}{衰|すい}", m: "さかえたり、おとろえたりをくり返すこと", hard: true },
+  { t: "yoji", w: "{温|おん}{故|こ}{知|ち}{新|しん}", m: "昔のことを学び直して、そこから新しい考えを見つけること" },
+  { t: "yoji", w: "{花|か}{鳥|ちょう}{風|ふう}{月|げつ}", m: "花・鳥・風・月のような、自然の美しいもの" },
+  { t: "yoji", w: "{我|が}{田|でん}{引|いん}{水|すい}", m: "自分につごうのいいように、物事を進めたり話したりすること", hard: true },
+  { t: "yoji", w: "{画|が}{竜|りょう}{点|てん}{睛|せい}", m: "物事をりっぱに仕上げるための、最後の大切な一手", hard: true },
+  { t: "yoji", w: "{危|き}{機|き}{一|いっ}{髪|ぱつ}", m: "もう少しで大変なことになる、ぎりぎりの状態", same: "pinch" },
+  { t: "yoji", w: "{起|き}{死|し}{回|かい}{生|せい}", m: "だめになりかけた状態から、一気に立ち直ること", same: "pinch" },
+  { t: "yoji", w: "{起|き}{承|しょう}{転|てん}{結|けつ}", m: "話や文章の「始まり・続き・変化・まとめ」という組み立て" },
+  { t: "yoji", w: "{疑|ぎ}{心|しん}{暗|あん}{鬼|き}", m: "一度うたがい出すと、何でもないことまであやしく思えること", hard: true, note: "「半信半疑」とのちがい：疑心暗鬼は、うたがいが大きくなって、何でもあやしく見えること。半信半疑は、信じる気持ちとうたがう気持ちが半分ずつ。" },
+  { t: "yoji", w: "{奇|き}{想|そう}{天|てん}{外|がい}", m: "ふつうでは思いつかないほど、変わっていておどろくようなこと", note: "「前代未聞」とのちがい：奇想天外は、考えやアイデアがとても変わっていること。前代未聞は、これまでに聞いたことがない出来事のこと。" },
+  { t: "yoji", w: "{喜|き}{怒|ど}{哀|あい}{楽|らく}", m: "喜び・いかり・悲しみ・楽しみという、いろいろな気持ち" },
+  { t: "yoji", w: "{空|くう}{前|ぜん}{絶|ぜつ}{後|ご}", m: "これまでもなく、これからもないだろうと思うほど、めずらしいこと", hard: true, same: "mezurashii" },
+  { t: "yoji", w: "{公|こう}{明|めい}{正|せい}{大|だい}", m: "かくしごとがなく、正しくて堂々としていること" },
+  { t: "yoji", w: "{古|こ}{今|こん}{東|とう}{西|ざい}", m: "昔から今まで、そして世界のあらゆる場所" },
+  { t: "yoji", w: "{五|ご}{里|り}{霧|む}{中|ちゅう}", m: "先が見えず、どうしたらよいかわからないこと", same: "mayoi" },
+  { t: "yoji", w: "{言|ごん}{語|ご}{道|どう}{断|だん}", m: "言葉で言えないほど、ひどいこと" },
+  { t: "yoji", w: "{三|さん}{寒|かん}{四|し}{温|おん}", m: "寒い日が三日ほど続くと、あたたかい日が四日ほど続くこと。冬から春へうつるころの天気" },
+  { t: "yoji", w: "{三|さん}{者|しゃ}{三|さん}{様|よう}", m: "やり方や考え方が、人によってそれぞれちがうこと", same: "iroiro" },
+  { t: "yoji", w: "{自|じ}{画|が}{自|じ}{賛|さん}", m: "自分のしたことを、自分でほめること" },
+  { t: "yoji", w: "{自|じ}{給|きゅう}{自|じ}{足|そく}", m: "生活に必要なものを、自分でつくってまかなうこと" },
+  { t: "yoji", w: "{四|し}{苦|く}{八|はっ}{苦|く}", m: "とても苦労すること" },
+  { t: "yoji", w: "{試|し}{行|こう}{錯|さく}{誤|ご}", m: "ためしては失敗し、またためして、よい方法を見つけていくこと", note: "「暗中模索」とのちがい：試行錯誤は、ためしては直して、よい方法に近づいていくこと。暗中模索は、手がかりがなくて先が見えない状態。" },
+  { t: "yoji", w: "{自|じ}{業|ごう}{自|じ}{得|とく}", m: "自分のした悪いことの結果が、自分に返ってくること", same: "mukui" },
+  { t: "yoji", w: "{七|しち}{転|てん}{八|はっ}{起|き}", m: "何度失敗しても、そのたびに立ち上がってがんばること", same: "tsuzukeru" },
+  { t: "yoji", w: "{十|じっ}{中|ちゅう}{八|はっ}{九|く}", m: "十のうち八か九。ほとんどまちがいなく、ということ" },
+  { t: "yoji", w: "{四|し}{面|めん}{楚|そ}{歌|か}", m: "まわりが反対する人ばかりで、味方がいないこと", hard: true },
+  { t: "yoji", w: "{弱|じゃく}{肉|にく}{強|きょう}{食|しょく}", m: "強いものが弱いものを負かして、生き残ること" },
+  { t: "yoji", w: "{終|しゅう}{始|し}{一|いっ}{貫|かん}", m: "始めから終わりまで、考えや態度が変わらないこと" },
+  { t: "yoji", w: "{自|じ}{由|ゆう}{自|じ}{在|ざい}", m: "自分の思いどおりにできること" },
+  { t: "yoji", w: "{十|じゅう}{人|にん}{十|と}{色|いろ}", m: "考え方や好みは、人によってそれぞれちがうということ", same: "iroiro" },
+  { t: "yoji", w: "{取|しゅ}{捨|しゃ}{選|せん}{択|たく}", m: "よいものや必要なものを選び、いらないものをすてること" },
+  { t: "yoji", w: "{心|しん}{機|き}{一|いっ}{転|てん}", m: "あることをきっかけに、気持ちをすっかり入れかえること", note: "「一念発起」とのちがい：心機一転は、気持ちを新しく入れかえること。一念発起は、何かをやりとげようと決心すること。" },
+  { t: "yoji", w: "{針|しん}{小|しょう}{棒|ぼう}{大|だい}", m: "小さなことを、大げさに言うこと", hard: true },
+  { t: "yoji", w: "{晴|せい}{耕|こう}{雨|う}{読|どく}", m: "晴れた日は畑をたがやし、雨の日は本を読む、のんびりした暮らし" },
+  { t: "yoji", w: "{誠|せい}{心|しん}{誠|せい}{意|い}", m: "うそやごまかしのない、まごころで物事にあたること" },
+  { t: "yoji", w: "{切|せっ}{磋|さ}{琢|たく}{磨|ま}", m: "仲間どうしではげまし合い、きそい合って、おたがいに成長すること", note: "「二人三脚」とのちがい：切磋琢磨は、きそい合いながら、おたがいにのびること。二人三脚は、同じ目標に向かって力を合わせること。" },
+  { t: "yoji", w: "{絶|ぜっ}{体|たい}{絶|ぜつ}{命|めい}", m: "にげ道がなく、どうにもならない、とても苦しい状態", same: "pinch" },
+  { t: "yoji", w: "{千|せん}{載|ざい}{一|いち}{遇|ぐう}", m: "千年に一度しかないような、めったにないよい機会", hard: true, note: "「一期一会」とのちがい：千載一遇は、めったにないチャンスのこと。一期一会は、人との出会いを大切にする心がまえのこと。" },
+  { t: "yoji", w: "{千|せん}{差|さ}{万|ばん}{別|べつ}", m: "いろいろなものがあって、一つ一つみなちがっていること", same: "iroiro" },
+  { t: "yoji", w: "{前|ぜん}{代|だい}{未|み}{聞|もん}", m: "これまで一度も聞いたことがないほど、めずらしいこと", same: "mezurashii", note: "「奇想天外」とのちがい：前代未聞は、聞いたことがないほどめずらしい出来事。奇想天外は、思いつかないほど変わった考えやアイデア。" },
+  { t: "yoji", w: "{創|そう}{意|い}{工|く}{夫|ふう}", m: "新しい考えや、よいやり方を自分で考え出すこと" },
+  { t: "yoji", w: "{大|たい}{器|き}{晩|ばん}{成|せい}", m: "大きな力をもつ人は、時間をかけてゆっくり育つということ" },
+  { t: "yoji", w: "{大|だい}{同|どう}{小|しょう}{異|い}", m: "細かいところはちがっても、だいたい同じであること", note: "「五十歩百歩」とのちがい：大同小異は、よい・悪いに関係なく、だいたい同じということ。五十歩百歩は、どちらもよくないもの同士をくらべるときに使う。" },
+  { t: "yoji", w: "{単|たん}{刀|とう}{直|ちょく}{入|にゅう}", m: "前置きをせず、いきなり大事な話に入ること", note: "「一刀両断」とのちがい：単刀直入は、話し方のこと（前置きなしで本題へ）。一刀両断は、物事の決め方のこと（まよわずすっぱり決める）。" },
+  { t: "yoji", w: "{朝|ちょう}{三|さん}{暮|ぼ}{四|し}", m: "目先のちがいに気をとられて、結局は同じだと気づかないこと", hard: true, note: "「朝令暮改」とのちがい：字はにているけれど意味はちがう。朝三暮四は、目先のちがいにまどわされること。朝令暮改は、決まりがころころ変わること。" },
+  { t: "yoji", w: "{朝|ちょう}{令|れい}{暮|ぼ}{改|かい}", m: "命令や決まりがすぐに変わって、定まらないこと", hard: true, note: "「朝三暮四」とのちがい：字はにているけれど意味はちがう。朝令暮改は、決まりがころころ変わること。朝三暮四は、目先のちがいにまどわされて、同じだと気づかないこと。" },
+  { t: "yoji", w: "{適|てき}{材|ざい}{適|てき}{所|しょ}", m: "その人やものに合った場所や役目で生かすこと" },
+  { t: "yoji", w: "{電|でん}{光|こう}{石|せっ}{火|か}", m: "動きがとてもすばやいこと" },
+  { t: "yoji", w: "{二|に}{束|そく}{三|さん}{文|もん}", m: "数が多くても、ねだんがとても安いこと" },
+  { t: "yoji", w: "{日|にっ}{進|しん}{月|げっ}{歩|ぽ}", m: "日に日に、どんどん進歩すること" },
+  { t: "yoji", w: "{二|に}{人|にん}{三|さん}{脚|きゃく}", m: "二人で力を合わせて、物事をすること", same: "kyouryoku", note: "「切磋琢磨」とのちがい：二人三脚は、同じ目標に向かって力を合わせること。切磋琢磨は、きそい合いながら、おたがいにのびること。" },
+  { t: "yoji", w: "{薄|はく}{利|り}{多|た}{売|ばい}", m: "一つあたりのもうけを少なくして、たくさん売ってもうけること" },
+  { t: "yoji", w: "{馬|ば}{耳|じ}{東|とう}{風|ふう}", m: "人の意見や注意を、気にとめずに聞き流すこと", same: "kikinagashi" },
+  { t: "yoji", w: "{半|はん}{信|しん}{半|はん}{疑|ぎ}", m: "半分信じて、半分うたがっていること", note: "「疑心暗鬼」とのちがい：半信半疑は、信じる気持ちとうたがう気持ちが半分ずつ。疑心暗鬼は、うたがいが大きくなって、何でもあやしく見えること。" },
+  { t: "yoji", w: "{反|はん}{面|めん}{教|きょう}{師|し}", m: "「ああはならないようにしよう」と、悪い見本から学ぶこと" },
+  { t: "yoji", w: "{百|ひゃっ}{発|ぱつ}{百|ひゃく}{中|ちゅう}", m: "ねらったものが、全部当たること" },
+  { t: "yoji", w: "{不|ふ}{言|げん}{実|じっ}{行|こう}", m: "あれこれ言わずに、だまってやるべきことをやること", note: "「有言実行」とのちがい：不言実行は、何も言わずにだまってやること。有言実行は、先に言ってから、そのとおりにやること。" },
+  { t: "yoji", w: "{本|ほん}{末|まつ}{転|てん}{倒|とう}", m: "大事なことと、どうでもいいことを取りちがえること" },
+  { t: "yoji", w: "{三|みっ}{日|か}{坊|ぼう}{主|ず}", m: "あきっぽくて、何をしても長続きしないこと", note: "「竜頭蛇尾」とのちがい：三日坊主は、とちゅうであきてやめてしまうこと。竜頭蛇尾は、最後まで続けても、終わりのほうがふるわないこと。" },
+  { t: "yoji", w: "{無|む}{我|が}{夢|む}{中|ちゅう}", m: "何かにむちゅうになって、ほかのことをわすれること", same: "shuchu" },
+  { t: "yoji", w: "{有|ゆう}{言|げん}{実|じっ}{行|こう}", m: "言ったことを、そのとおりにやりとげること", note: "「不言実行」とのちがい：有言実行は、先に「やる」と言ってから、そのとおりにやること。不言実行は、何も言わずにだまってやること。" },
+  { t: "yoji", w: "{優|ゆう}{柔|じゅう}{不|ふ}{断|だん}", m: "ぐずぐずして、なかなか物事を決められないこと" },
+  { t: "yoji", w: "{油|ゆ}{断|だん}{大|たい}{敵|てき}", m: "気をゆるめると失敗するので、油断してはいけないということ", same: "youjin" },
+  { t: "yoji", w: "{用|よう}{意|い}{周|しゅう}{到|とう}", m: "準備がすみずみまで行きとどいていること", same: "youjin" },
+  { t: "yoji", w: "{竜|りゅう}{頭|とう}{蛇|だ}{尾|び}", m: "始めはいきおいがよいのに、終わりはふるわないこと", hard: true, note: "「三日坊主」とのちがい：竜頭蛇尾は、最後まで続けても、終わりのほうがふるわないこと。三日坊主は、とちゅうであきてやめてしまうこと。" },
+  { t: "yoji", w: "{理|り}{路|ろ}{整|せい}{然|ぜん}", m: "話や考えのすじ道が、きちんと通っていること" },
+  { t: "yoji", w: "{臨|りん}{機|き}{応|おう}{変|へん}", m: "その場のようすに合わせて、やり方を変えること" },
+  { t: "yoji", w: "{老|ろう}{若|にゃく}{男|なん}{女|にょ}", m: "年れいや男女に関係なく、すべての人" },
+
+  /* ---- ことわざ・故事成語・慣用句 ---- */
+  { t: "kotowaza", w: "{青菜|あおな}に{塩|しお}", m: "元気をなくして、しょんぼりしているようす" },
+  { t: "kotowaza", w: "{後|あと}の{祭|まつ}り", m: "時期がすぎてしまい、もう間に合わないこと", same: "teokure" },
+  { t: "kotowaza", w: "{危|あぶ}ない{橋|はし}を{渡|わた}る", m: "あぶないとわかっていて、あえてその方法をとること", note: "「虎穴に入らずんば虎子を得ず」とのちがい：危ない橋を渡るは、あぶないとわかっていてあえてするという、注意の意味で使うことが多い。虎穴に入らずんばは、成功のために思いきってちょうせんしようという、よい意味。" },
+  { t: "kotowaza", w: "{雨|あめ}{降|ふ}って{地|じ}{固|かた}まる", m: "もめごとのあと、かえって前よりよい関係になること", fill: ["地", "山", "水"], same: "fuku" },
+  { t: "kotowaza", w: "{石|いし}の{上|うえ}にも{三|さん}{年|ねん}", m: "つらくても、がまんして続ければ、いつかうまくいくということ", fill: ["三", "五", "十"], same: "tsuzukeru" },
+  { t: "kotowaza", w: "{急|いそ}がば{回|まわ}れ", m: "急ぐときほど、遠くても安全な方法をとるほうが、結局は早いということ", fill: ["回", "走", "止"], note: "「善は急げ」とのちがい：急がば回れは、あわてて近道をせず、安全なやり方をえらぼうという教え。善は急げは、よいことはまよわずすぐやろうという教え。場面によって使い分ける。" },
+  { t: "kotowaza", w: "{一寸先|いっすんさき}は{闇|やみ}", m: "少し先のことでも、どうなるかはわからないということ" },
+  { t: "kotowaza", w: "{一寸|いっすん}の{虫|むし}にも{五分|ごぶ}の{魂|たましい}", m: "小さくて弱いものにも、それなりの考えや意地があるので、ばかにしてはいけないということ", hard: true },
+  { t: "kotowaza", w: "{犬|いぬ}も{歩|ある}けば{棒|ぼう}に{当|あ}たる", m: "何かをしようとすると、思いがけない災難や幸運にあうこと", fill: ["棒", "石", "木"] },
+  { t: "kotowaza", w: "{井|い}の{中|なか}の{蛙|かわず}{大海|たいかい}を{知|し}らず", m: "せまい世界のことしか知らず、広い世の中を知らないこと", fill: ["蛙", "魚", "鳥"] },
+  { t: "kotowaza", w: "{嘘|うそ}から{出|で}た{実|まこと}", m: "うそやじょうだんで言ったことが、本当になってしまうこと" },
+  { t: "kotowaza", w: "{馬|うま}の{耳|みみ}に{念仏|ねんぶつ}", m: "いくら言い聞かせても、聞きめがないこと", fill: ["馬", "牛", "犬"], same: "kikinagashi" },
+  { t: "kotowaza", w: "{海老|えび}で{鯛|たい}を{釣|つ}る", m: "少しの元手や手間で、大きなものを手に入れること" },
+  { t: "kotowaza", w: "{縁|えん}の{下|した}の{力|ちから}{持|も}ち", m: "人の目につかないところで、みんなのために働く人", fill: ["力", "金", "心"] },
+  { t: "kotowaza", w: "{鬼|おに}に{金|かな}{棒|ぼう}", m: "もともと強いものが、さらに強くなること", fill: ["金", "銀", "木"] },
+  { t: "kotowaza", w: "{鬼|おに}の{目|め}にも{涙|なみだ}", m: "こわくてきびしい人でも、ときにはやさしい心を見せること" },
+  { t: "kotowaza", w: "{溺|おぼ}れる{者|もの}は{藁|わら}をも{掴|つか}む", m: "ひどく困ったときは、たよりにならないものにまですがろうとすること", hard: true },
+  { t: "kotowaza", w: "{親|おや}の{心|こころ}{子|こ}{知|し}らず", m: "子どもは、親が自分を思う気持ちに気づかないものだということ" },
+  { t: "kotowaza", w: "{蛙|かえる}の{子|こ}は{蛙|かえる}", m: "子どもは親に似るものだということ", fill: ["蛙", "魚", "鳥"], note: "「鳶が鷹を生む」とは反対の意味：蛙の子は蛙は、子は親ににるということ。鳶が鷹を生むは、ふつうの親からすぐれた子が生まれること。" },
+  { t: "kotowaza", w: "{河童|かっぱ}の{川|かわ}{流|なが}れ", m: "その道の名人でも、ときには失敗するということ（水泳がとくいな河童も、川に流されることがある）", fill: ["川", "海", "山"], same: "meijin" },
+  { t: "kotowaza", w: "{金|かね}は{天下|てんか}の{回|まわ}りもの", m: "お金は人から人へと回っていくものだということ" },
+  { t: "kotowaza", w: "{壁|かべ}に{耳|みみ}あり{障子|しょうじ}に{目|め}あり", m: "ないしょ話は、だれかに聞かれたり見られたりしやすいので気をつけようということ", fill: ["耳", "口", "手"], note: "「口は災いのもと」とのちがい：壁に耳ありは、ないしょ話はだれかに聞かれているかもしれないという注意。口は災いのもとは、言ったことそのものがわざわいのもとになるということ。" },
+  { t: "kotowaza", w: "{果報|かほう}は{寝|ね}て{待|ま}て", m: "よい知らせは、あせらずに待っていればやってくるということ", note: "「善は急げ」とのちがい：果報は寝て待ては、やることをやったら、あせらず待とうという教え。善は急げは、すぐに動こうという教え。どちらが合うかは場面しだい。" },
+  { t: "kotowaza", w: "{亀|かめ}の{甲|こう}より{年|とし}の{功|こう}", m: "長い年月で積んだ経験は、とても大切だということ" },
+  { t: "kotowaza", w: "{九死|きゅうし}に{一生|いっしょう}を{得|え}る", m: "助かりそうもないあぶないところから、なんとか助かること", same: "pinch" },
+  { t: "kotowaza", w: "{漁夫|ぎょふ}の{利|り}", m: "二人があらそっているすきに、ほかの人が得をすること", hard: true },
+  { t: "kotowaza", w: "{腐|くさ}っても{鯛|たい}", m: "すぐれたものは、少しいたんでも、それなりのねうちがあるということ", fill: ["鯛", "魚", "鳥"] },
+  { t: "kotowaza", w: "{口|くち}は{災|わざわ}いのもと", m: "うっかり言ったことが、わざわいをまねくことがあるので気をつけようということ", fill: ["口", "目", "手"], note: "「壁に耳あり障子に目あり」とのちがい：口は災いのもとは、言ったことでわざわいが起きるので気をつけようということ。壁に耳ありは、ないしょ話はだれかに聞かれているかもしれないという注意。" },
+  { t: "kotowaza", w: "{怪我|けが}の{功名|こうみょう}", m: "失敗やまちがいが、思いがけずよい結果になること", same: "fuku" },
+  { t: "kotowaza", w: "{光陰|こういん}{矢|や}の{如|ごと}し", m: "月日がたつのは、矢が飛ぶようにとても早いということ", fill: ["矢", "弓", "風"], same: "toki" },
+  { t: "kotowaza", w: "{後悔|こうかい}{先|さき}に{立|た}たず", m: "すんでしまったことを、あとでくやんでもどうにもならないということ", same: "teokure" },
+  { t: "kotowaza", w: "{弘法|こうぼう}も{筆|ふで}の{誤|あやま}り", m: "その道の名人でも、ときには失敗するということ（字の名人も、書きまちがえることがある）", fill: ["筆", "紙", "墨"], same: "meijin" },
+  { t: "kotowaza", w: "{虎穴|こけつ}に{入|い}らずんば{虎子|こじ}を{得|え}ず", m: "あぶないことに思いきってちょうせんしなければ、大きな成功は手に入らないということ", hard: true, note: "「危ない橋を渡る」とのちがい：虎穴に入らずんば虎子を得ずは、大きな成功のために思いきってちょうせんしようという、よい意味。危ない橋を渡るは、あぶないことをあえてするという、注意の意味で使うことが多い。" },
+  { t: "kotowaza", w: "{五十歩百歩|ごじゅっぽひゃっぽ}", m: "少しのちがいはあっても、大きく見れば同じようなものだということ", note: "「大同小異」とのちがい：五十歩百歩は、どちらもよくないもの同士をくらべるときに使う。大同小異は、よい・悪いに関係なく、だいたい同じこと。反対の意味のことばは「月とすっぽん」。" },
+  { t: "kotowaza", w: "{朱|しゅ}に{交|まじ}われば{赤|あか}くなる", m: "つきあう人によって、よくも悪くも変わっていくということ", hard: true },
+  { t: "kotowaza", w: "{知|し}らぬが{仏|ほとけ}", m: "知らなければ、腹を立てたりなやんだりせず、おだやかでいられるということ" },
+  { t: "kotowaza", w: "{好|す}きこそ{物|もの}の{上手|じょうず}なれ", m: "好きなことは熱心にやるので、自然とじょうずになるということ" },
+  { t: "kotowaza", w: "{善|ぜん}は{急|いそ}げ", m: "よいことだと思ったら、まよわずすぐにやるのがよいということ", note: "「急がば回れ」とのちがい：善は急げは、よいと思ったらすぐ動こうという教え。急がば回れは、あわてて近道をせず、安全なやり方をえらぼうという教え。" },
+  { t: "kotowaza", w: "{宝|たから}の{持|も}ち{腐|ぐさ}れ", m: "よいものを持っているのに、使わないでむだにしていること", note: "「猫に小判」とのちがい：宝の持ち腐れは、よいものを持っているのに使わずにいること。猫に小判は、ねうちがわからない人にあげてもむだということ。" },
+  { t: "kotowaza", w: "{立|た}つ{鳥|とり}{跡|あと}を{濁|にご}さず", m: "立ち去るときは、あとかたづけをきちんとしようということ", fill: ["鳥", "虫", "人"] },
+  { t: "kotowaza", w: "{短気|たんき}は{損気|そんき}", m: "すぐにおこると、結局は自分が損をするということ" },
+  { t: "kotowaza", w: "{月|つき}とすっぽん", m: "少しにていても、くらべものにならないほどちがうこと", fill: ["月", "星", "日"], note: "「五十歩百歩」とは反対の意味：月とすっぽんは、くらべものにならないほどちがうこと。五十歩百歩は、ちがうように見えて、ほとんど同じこと。" },
+  { t: "kotowaza", w: "{出|で}る{杭|くい}は{打|う}たれる", m: "目立つ人は、ほかの人からじゃまされたり、ねたまれたりしやすいということ" },
+  { t: "kotowaza", w: "{灯台|とうだい}{下|もと}{暗|くら}し", m: "身近なことほど、かえって気づきにくいということ", fill: ["下", "上", "横"] },
+  { t: "kotowaza", w: "{所|ところ}{変|か}われば{品|しな}{変|か}わる", m: "土地が変われば、ことばやならわし、ものの呼び名もちがうということ", fill: ["品", "人", "色"], note: "「郷に入っては郷に従え」とのちがい：所変われば品変わるは、場所によってちがうという事実のこと。郷に入っては郷に従えは、だから行った先のやり方に合わせようという教え。" },
+  { t: "kotowaza", w: "{鳶|とんび}が{鷹|たか}を{生|う}む", m: "ふつうの親から、とてもすぐれた子どもが生まれること", note: "「蛙の子は蛙」とは反対の意味：鳶が鷹を生むは、ふつうの親からすぐれた子が生まれること。蛙の子は蛙は、子は親ににるということ。" },
+  { t: "kotowaza", w: "{虎|とら}の{威|い}を{借|か}る{狐|きつね}", m: "強い人の力をたよりにして、いばる人のこと" },
+  { t: "kotowaza", w: "{情|なさ}けは{人|ひと}のためならず", m: "人に親切にすると、めぐりめぐって自分にもよいことが返ってくるということ", hard: true },
+  { t: "kotowaza", w: "{逃|に}がした{魚|さかな}は{大|おお}きい", m: "手に入れそこなったものほど、実際よりよく思えてくやしいこと", fill: ["魚", "鳥", "虫"] },
+  { t: "kotowaza", w: "{二度|にど}あることは{三|さん}{度|ど}ある", m: "同じことが二度起きたら、もう一度起きやすいので気をつけようということ", fill: ["三", "四", "五"] },
+  { t: "kotowaza", w: "{二兎|にと}を{追|お}う{者|もの}は{一兎|いっと}をも{得|え}ず", m: "二つのことを同時にしようとすると、どちらもうまくいかないということ" },
+  { t: "kotowaza", w: "{猫|ねこ}に{小判|こばん}", m: "ねうちのわからない人に、よいものをあげても役に立たないこと", fill: ["猫", "犬", "鳥"], note: "「宝の持ち腐れ」とのちがい：猫に小判は、ねうちがわからない人にあげてもむだということ。宝の持ち腐れは、ねうちがあるのに使わずにいること。" },
+  { t: "kotowaza", w: "{猿|さる}も{木|き}から{落|お}ちる", m: "その道の名人でも、ときには失敗するということ（木登りがとくいな猿も、木から落ちることがある）", fill: ["木", "石", "山"], same: "meijin" },
+  { t: "kotowaza", w: "{住|す}めば{都|みやこ}", m: "どんなところでも、住みなれればよいところに思えるということ", fill: ["都", "町", "村"] },
+  { t: "kotowaza", w: "{雀|すずめ}の{涙|なみだ}", m: "ほんの少ししかないこと", fill: ["雀", "鶴", "象"] },
+  { t: "kotowaza", w: "{捨|す}てる{神|かみ}あれば{拾|ひろ}う{神|かみ}あり", m: "見はなす人もいれば、助けてくれる人もいるということ" },
+  { t: "kotowaza", w: "{絵|え}に{描|か}いた{餅|もち}", m: "計画や考えだけで、実際には役に立たないこと", fill: ["餅", "米", "花"], same: "kuusou" },
+  { t: "kotowaza", w: "{頭|あたま}{隠|かく}して{尻|しり}{隠|かく}さず", m: "悪いことや欠点の一部だけをかくして、全部かくしたつもりでいること", fill: ["尻", "足", "手"] },
+  { t: "kotowaza", w: "{朝飯前|あさめしまえ}", m: "とてもかんたんにできること" },
+  { t: "kotowaza", w: "{木|き}を{見|み}て{森|もり}を{見|み}ず", m: "細かいところばかり見て、全体を見ていないこと", fill: ["森", "林", "山"] },
+  { t: "kotowaza", w: "{郷|ごう}に{入|い}っては{郷|ごう}に{従|したが}え", m: "新しい土地に行ったら、その土地のならわしに合わせるのがよいということ", note: "「所変われば品変わる」とのちがい：郷に入っては郷に従えは、行った先のやり方に合わせようという教え。所変われば品変わるは、場所によってちがうという事実のこと。" },
+  { t: "kotowaza", w: "{早起|はやお}きは{三|さん}{文|もん}の{徳|とく}", m: "朝早く起きると、何かしらよいことがあるということ", fill: ["三", "一", "十"] }
+];
+/* ===== ここまでことばのデータ ===== */
+</script>
+
+<style>
+  :root {
+    --bg: #fdf8f0;
+    --card: #ffffff;
+    --text: #2b2620;
+    --muted: #6b6258;
+    --accent: #d9622b;
+    --accent-text: #ffffff;
+    --line: #e8dfd2;
+    --good: #2f8a4c;
+    --soso: #b7860b;
+    --bad: #b5453a;
+    --phrase-bg: #fff3d6;
+    --phrase-line: #e9b949;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1f1b17;
+      --card: #2a2520;
+      --text: #f2ece4;
+      --muted: #b5aa9c;
+      --accent: #f07f45;
+      --accent-text: #1f1b17;
+      --line: #423a32;
+      --good: #6cc78a;
+      --soso: #e3b84a;
+      --bad: #ee7d72;
+      --phrase-bg: #3a3020;
+      --phrase-line: #a8822f;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+    font-size: 18px;
+    line-height: 1.9;
+    -webkit-text-size-adjust: 100%; /* スマホを横にしたとき、文字が勝手に大きくならないように */
+    text-size-adjust: 100%;
+  }
+  /* すばやく押したときに画面が拡大されないように */
+  a, button { touch-action: manipulation; }
+  main { max-width: 640px; margin: 0 auto; padding: 16px 16px 48px; }
+  /* 文字が大きいときは、ボタンを次の行へ回す（1文字ずつ縦に折り返さないように） */
+  .topbar { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
+  /* 指で押しやすいように、リンクの押せる範囲を高さ48pxにする */
+  .topbar a { color: var(--muted); font-size: 15px; display: inline-flex; align-items: center; min-height: 48px; padding: 0 8px; margin-left: -8px; white-space: nowrap; }
+  .ruby-toggle {
+    min-height: 48px; padding: 0 14px; border-radius: 24px; white-space: nowrap;
+    border: 1px solid var(--line); background: var(--card); color: var(--text);
+    font: inherit; font-size: 15px; cursor: pointer;
+  }
+  body.no-ruby rt { display: none; }
+  rt { font-size: 0.55em; }
+  h1 { font-size: 26px; line-height: 1.6; margin: 8px 0 4px; }
+  h2 { font-size: 20px; margin: 0 0 8px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+  .muted { color: var(--muted); }
+  .btn {
+    display: block; width: 100%; min-height: 56px; margin: 0 0 10px;
+    padding: 12px 16px; border-radius: 14px; border: 2px solid var(--line);
+    background: var(--card); color: var(--text); font: inherit; text-align: left;
+    cursor: pointer; line-height: 1.8;
+  }
+  /* スマホでは、押したあとに色が残らないよう、マウスのときだけ色を変える */
+  @media (hover: hover) {
+    .btn:hover:not(:disabled) { border-color: var(--accent); }
+  }
+  .btn:disabled { cursor: default; opacity: 0.55; }
+  .btn.chosen { opacity: 1; border-color: var(--accent); border-width: 3px; }
+  .btn.primary { background: var(--accent); color: var(--accent-text); border-color: var(--accent); text-align: center; font-weight: bold; }
+  .btn.secondary { text-align: center; }
+  .progress-text { font-size: 15px; color: var(--muted); }
+  .progress { height: 10px; background: var(--line); border-radius: 5px; overflow: hidden; margin: 4px 0 16px; }
+  .progress > div { height: 100%; background: var(--accent); transition: width .3s; }
+  .industry { display: inline-block; font-size: 14px; padding: 2px 12px; border-radius: 12px; background: var(--phrase-bg); border: 1px solid var(--phrase-line); margin-bottom: 8px; }
+  .hard { display: inline-block; font-size: 14px; padding: 2px 12px; border-radius: 12px; background: var(--bad); color: var(--card); font-weight: bold; margin-bottom: 8px; }
+  .blank { font-size: 30px; font-weight: bold; letter-spacing: .08em; margin: 4px 0; }
+  .feedback { font-size: 22px; font-weight: bold; margin: 0 0 6px; }
+  .p3 { color: var(--good); } .p1 { color: var(--soso); } .p0 { color: var(--bad); }
+  .phrase { background: var(--phrase-bg); border-left: 6px solid var(--phrase-line); border-radius: 10px; padding: 12px 14px; margin: 14px 0 4px; }
+  .phrase .label { font-size: 14px; color: var(--muted); }
+  .phrase .word { font-size: 22px; font-weight: bold; }
+  .score { font-size: 40px; font-weight: bold; color: var(--accent); margin: 0; }
+  .town-news p { margin: 4px 0; }
+  .town-news b { color: var(--accent); }
+  .recap h3 { font-size: 18px; margin: 0 0 4px; }
+  .recap p { margin: 4px 0; }
+  .error { border-color: var(--bad); color: var(--bad); }
+  /* はばのせまいスマホでは、余白を少しへらして文字の場所を広くする */
+  @media (max-width: 360px) {
+    main { padding: 12px 12px 40px; }
+    .card { padding: 16px; }
+    .phrase { padding: 10px 12px; }
+    h1 { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <div class="topbar">
+    <a href="index.html">← まちへ{戻|もど}る</a>
+    <button class="ruby-toggle" id="rubyToggle" type="button">ふりがな：あり</button>
+  </div>
+  <div id="app"></div>
+</main>
+
+<script>
+(function () {
+  const app = document.getElementById("app");
+  const rubyToggle = document.getElementById("rubyToggle");
+  const SEASON_ICONS = ["🌸", "☀️", "🍁", "⛄"];
+  const SEASONS = ["{春|はる}", "{夏|なつ}", "{秋|あき}", "{冬|ふゆ}"];
+
+  // ---- ふりがな ----
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  }
+  function rich(s) {
+    return escapeHtml(s).replace(/\{([^{}|]+)\|([^{}|]+)\}/g, "<ruby>$1<rt>$2</rt></ruby>");
+  }
+  function plain(s) { return String(s || "").replace(/\{([^{}|]+)\|[^{}|]+\}/g, "$1"); }
+  function reading(s) { return String(s || "").replace(/\{([^{}|]+)\|([^{}|]+)\}/g, "$2"); }
+  function setupRubyToggle() {
+    document.querySelectorAll(".topbar a").forEach(a => { a.innerHTML = rich(a.textContent); });
+    rubyToggle.addEventListener("click", () => {
+      const off = document.body.classList.toggle("no-ruby");
+      rubyToggle.textContent = off ? "ふりがな：なし" : "ふりがな：あり";
+    });
+  }
+  setupRubyToggle();
+
+  // ---- 乱数 ----
+  function seededRandom(seedText) {
+    let h = 2166136261;
+    for (let i = 0; i < seedText.length; i++) { h ^= seedText.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return function () {
+      h += 0x6D2B79F5;
+      let t = h;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function shuffle(arr, rnd) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+  function today() {
+    const d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+
+  // ---- 問題づくり ----
+  // まちがいの選択肢に使えることば（同じ種類で、意味がにている仲間ではないもの）
+  function distractorPool(entry) {
+    return STOCK.filter(e => e.t === entry.t && e !== entry && !(entry.same && e.same === entry.same));
+  }
+  // 四字熟語の□に入れる、まちがいの字の候補
+  function yojiBlankCandidates(entry, pos) {
+    const chars = Array.from(plain(entry.w));
+    const correct = chars[pos];
+    const allYoji = new Set(STOCK.filter(e => e.t === "yoji").map(e => plain(e.w)));
+    const set = new Set();
+    STOCK.forEach(e => {
+      if (e.t !== "yoji" || e === entry) return;
+      const c = Array.from(plain(e.w))[pos];
+      if (!c || c === correct) return;
+      const replaced = chars.slice(); replaced[pos] = c;
+      if (allYoji.has(replaced.join(""))) return; // 別の四字熟語になってしまう字は使わない
+      set.add(c);
+    });
+    return Array.from(set);
+  }
+  // ことばを、ふりがなのまとまりに分ける（{漢字|かんじ} は1まとまり、ふりがなのない字は1字ずつ）
+  function rubyParts(w) {
+    const parts = [];
+    String(w).replace(/\{([^{}|]+)\|([^{}|]+)\}|([^{}])/g, (m, base, read, ch) => {
+      parts.push(base ? { base, read } : { base: ch, read: ch });
+      return m;
+    });
+    return parts;
+  }
+  // isBlank(まとまり, 番号) が true のまとまりを、ことばでも読み方でも□にする
+  function blankParts(entry, isBlank) {
+    const parts = rubyParts(entry.w);
+    return {
+      shown: parts.map((p, i) => isBlank(p, i) ? "□".repeat(Array.from(p.base).length) : p.base).join(""),
+      reading: parts.map((p, i) => isBlank(p, i) ? "□" : p.read).join("")
+    };
+  }
+  // 四字熟語の□問題：どの字を□にするかは毎回くじ
+  function yojiBlank(entry, rnd) {
+    const chars = Array.from(plain(entry.w));
+    const pos = Math.floor(rnd() * chars.length);
+    const correct = chars[pos];
+    const wrong = shuffle(yojiBlankCandidates(entry, pos), rnd).slice(0, 2);
+    // 四字熟語はふりがなを1字ずつ書くので、まとまりの番号＝字の位置
+    const b = blankParts(entry, (p, i) => i === pos);
+    return { shown: b.shown, reading: b.reading, correct, wrong };
+  }
+  // ことわざの□問題：fill に書いた字を使う（同じ字が2回あれば、どちらも□にする）
+  function kotowazaBlank(entry) {
+    const correct = entry.fill[0];
+    const b = blankParts(entry, p => p.base === correct);
+    return { shown: b.shown, reading: b.reading, correct, wrong: entry.fill.slice(1, 3) };
+  }
+  function blankText(entry, rnd) {
+    return entry.t === "yoji" ? yojiBlank(entry, rnd) : kotowazaBlank(entry);
+  }
+  function questionTypes(entry) {
+    const types = ["m2w", "w2m"];
+    if (entry.t === "yoji" || (entry.fill && entry.fill.length === 3)) types.push("blank");
+    return types;
+  }
+  function choiceList(correct, wrong) {
+    return [{ label: correct, points: 3 }].concat(wrong.map(label => ({ label, points: 0 })));
+  }
+  // 問題の種類ごとの、問題文と選択肢のつくり方
+  const QUESTION_BUILDERS = {
+    // 意味 → ことば
+    m2w(entry, others, typeName) {
+      return {
+        promptHtml: "<p>" + rich("つぎの{意味|いみ}の" + typeName + "は？") + "</p><p><b>「" + escapeHtml(entry.m) + "」</b></p>",
+        choices: choiceList(entry.w, others.map(e => e.w))
+      };
+    },
+    // ことば → 意味
+    w2m(entry, others, typeName) {
+      return {
+        promptHtml: "<p>" + rich("つぎの" + typeName + "の{意味|いみ}は？") + '</p><p class="blank" style="font-size:24px">' + rich(entry.w) + "</p>",
+        choices: choiceList(entry.m, others.map(e => e.m))
+      };
+    },
+    // □に入る漢字
+    blank(entry, others, typeName, rnd) {
+      const b = blankText(entry, rnd);
+      return {
+        promptHtml: "<p>" + rich("□に{入|はい}る{漢字|かんじ}は？") + '</p><p class="blank">' + escapeHtml(b.shown) + "</p>" +
+          '<p class="muted">' + rich("{読|よ}み{方|かた}：") + escapeHtml(b.reading) + "</p>",
+        choices: choiceList(b.correct, b.wrong)
+      };
+    }
+  };
+  function makeQuestion(entry, rnd, forcedType) {
+    const types = questionTypes(entry);
+    const type = forcedType || types[Math.floor(rnd() * types.length)];
+    const others = shuffle(distractorPool(entry), rnd).slice(0, 2);
+    const typeName = GAME_DATA.typeNames[entry.t] || "";
+    const built = QUESTION_BUILDERS[type](entry, others, typeName, rnd);
+    return {
+      entry, type, promptHtml: built.promptHtml, choices: built.choices,
+      heading: typeName, hard: entry.hard,
+      phrase: { word: entry.w, meaning: entry.m }
+    };
+  }
+
+  // ---- データの確認 ----
+  function showError(message) {
+    app.innerHTML = '<div class="card error"><h2>ことばのデータの書き方に誤りがあります</h2><p>' + escapeHtml(message) + "</p></div>";
+  }
+  function checkFill(e, key, n) {
+    if (!Array.isArray(e.fill) || e.fill.length !== 3) return n + "fill は [正しい字, まちがいの字, まちがいの字] の3つにしてください。";
+    if (key.indexOf(e.fill[0]) < 0) return n + "fill の1つ目「" + e.fill[0] + "」が、ことばの中にありません。";
+    if (new Set(e.fill).size !== 3) return n + "fill の3つの字が同じになっています。";
+    // □にする字に、その字だけのふりがながついているか（読み方も□にするため）
+    const count = key.split(e.fill[0]).length - 1;
+    if (rubyParts(e.w).filter(p => p.base === e.fill[0]).length !== count) {
+      return n + "fill の1つ目「" + e.fill[0] + "」には、{" + e.fill[0] + "|よみ} のように、その字だけのふりがなをつけてください。";
+    }
+    return null;
+  }
+  function checkYojiBlanks(e, n) {
+    for (let p = 0; p < 4; p++) {
+      if (yojiBlankCandidates(e, p).length < 2) return n + (p + 1) + "文字目の□問題で、まちがいの字が足りません。";
+    }
+    return null;
+  }
+  // 1つのことばの書き方を確かめる（seen は、もう出てきたことばの記録）
+  function checkEntry(e, n, seen) {
+    if (!e || !e.w || !e.m) return n + "w（ことば）か m（意味）がありません。";
+    if (e.t !== "yoji" && e.t !== "kotowaza") return n + "t は \"yoji\" か \"kotowaza\" にしてください。";
+    const key = plain(e.w);
+    if (seen[key]) return n + "同じことばが2回書かれています。";
+    seen[key] = true;
+    if (/[{}|]/.test(plain(e.w))) return n + "ふりがなの書き方 {漢字|かんじ} がくずれています。";
+    if (e.t === "yoji" && Array.from(key).length !== 4) return n + "四字熟語が4文字ではありません。";
+    if (e.t === "yoji" && rubyParts(e.w).length !== 4) return n + "四字熟語のふりがなは {一|いっ}{石|せき}{二|に}{鳥|ちょう} のように、1字ずつつけてください。";
+    if (e.note !== undefined && typeof e.note !== "string") return n + "note は \" \" でかこんだ文にしてください。";
+    if (e.fill) {
+      const fillError = checkFill(e, key, n);
+      if (fillError) return fillError;
+    }
+    if (distractorPool(e).length < 2) return n + "まちがいの選択肢に使えることばが足りません。";
+    if (e.t === "yoji") return checkYojiBlanks(e, n);
+    return null;
+  }
+  // 意味がまったく同じことばは、same で仲間にしないと正解が2つになる
+  function checkSameMeaning() {
+    const byMeaning = {};
+    for (const e of STOCK) {
+      const k = e.t + ":" + e.m;
+      if (byMeaning[k] && !(e.same && byMeaning[k].same === e.same)) return "「" + plain(e.w) + "」と「" + plain(byMeaning[k].w) + "」の意味が同じです。same で仲間にしてください。";
+      byMeaning[k] = e;
+    }
+    return null;
+  }
+  function checkData() {
+    if (typeof GAME_DATA === "undefined" || typeof STOCK === "undefined" || !Array.isArray(STOCK)) {
+      return "データ全体が読み込めませんでした。「\"」「,」「{ }」「[ ]」が消えていないか確認してください。";
+    }
+    const seen = {};
+    for (let i = 0; i < STOCK.length; i++) {
+      const e = STOCK[i];
+      const entryError = checkEntry(e, (i + 1) + "番目（" + plain(e && e.w) + "）：", seen);
+      if (entryError) return entryError;
+    }
+    return checkSameMeaning();
+  }
+
+  const err = checkData();
+  if (err) { showError(err); return; }
+
+  const D = GAME_DATA;
+  const isDaily = new URLSearchParams(location.search).get("mode") === "daily";
+  let playQs = [];
+  let playRnd = Math.random;
+  let playDay = today(); // 遊び始めた日（夜0時をまたいでも、この日のおつかいとして記録する）
+  let answers = [];
+  let newWords = [];
+  let current = 0;
+
+  // ---- まちの記録（この端末のブラウザの中だけに保存） ----
+  const STORE_KEY = "machi-game-v1";
+  function loadStore() {
+    try {
+      // 記録がこわれていても止まらないように、形がちがうものは空にしてから使う
+      const isObject = v => !!v && typeof v === "object" && !Array.isArray(v);
+      let s = JSON.parse(localStorage.getItem(STORE_KEY));
+      if (!isObject(s)) s = {};
+      if (!isObject(s.words)) s.words = {};
+      if (!isObject(s.catalog)) s.catalog = {};
+      s.people = Number(s.people) || 0;
+      s.turn = Number(s.turn) || 0;
+      return s;
+    } catch (e) { return { words: {}, catalog: {}, people: 0, turn: 0 }; }
+  }
+  function saveStore(s) {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(s)); } catch (e) { /* 保存できない環境では記録しない */ }
+  }
+  function isLearned(s, entry) { return !!s.words[plain(entry.w)]; }
+  function registerCatalog() {
+    const s = loadStore();
+    s.catalog[D.gameId] = { title: D.title, words: STOCK.map(e => ({ word: e.w, meaning: e.m, same: e.same || "", note: e.note || "" })) };
+    saveStore(s);
+  }
+  function learnWord(entry) {
+    const s = loadStore();
+    if (isLearned(s, entry)) return;
+    s.words[plain(entry.w)] = { gameId: D.gameId, word: entry.w, meaning: entry.m };
+    saveStore(s);
+    newWords.push({ word: entry.w, meaning: entry.m });
+  }
+  registerCatalog();
+
+  // ---- 画面の部品 ----
+  function phraseHtml(p) {
+    if (!p || !p.word) return "";
+    return '<div class="phrase"><div class="label">きょうのことば</div><div class="word">' + rich(p.word) +
+      "</div><div>" + escapeHtml(p.meaning || "") + "</div></div>";
+  }
+  function top() { window.scrollTo(0, 0); }
+  function seasonLabel(i) { return SEASON_ICONS[i] + " " + rich(SEASONS[i]); }
+  // 意味の文（w2m の選択肢）にはふりがなの書き方がないので、そのまま出す
+  function choiceLabelHtml(q, label) { return q.type === "w2m" ? escapeHtml(label) : rich(label); }
+
+  // この回のことばをえらぶ（まだ覚えていないことばを先に出す）
+  function pickEntries(rnd) {
+    if (isDaily) return [STOCK[Math.floor(rnd() * STOCK.length)]];
+    const s = loadStore();
+    const fresh = shuffle(STOCK.filter(e => !isLearned(s, e)), rnd);
+    const known = shuffle(STOCK.filter(e => isLearned(s, e)), rnd);
+    return fresh.concat(known).slice(0, D.count || 5);
+  }
+  function startPlay() {
+    playDay = today();
+    playRnd = isDaily ? seededRandom(playDay + ":" + D.gameId) : Math.random;
+    playQs = pickEntries(playRnd).map(e => makeQuestion(e, playRnd));
+    answers = []; newWords = []; current = 0;
+    showQuestion();
+  }
+
+  // ---- はじめ ----
+  function dailyIntroHtml(s) {
+    const done = s.dailyDone === today();
+    return "<h1>" + rich("{今日|きょう}のおつかい") + "</h1>" +
+      "<p>" + rich("{今日|きょう}だけの1{問|もん}。{正解|せいかい}すると、まちの{人口|じんこう}が") + "<b>" + (D.peopleDailyBonus || 0) + rich("{人|にん}") + "</b>" + rich("ふえるよ（1{日|にち}1{回|かい}）。") + "</p>" +
+      (done ? '<p class="muted">' + rich("{今日|きょう}のおつかいは、もうやったよ。{遊|あそ}べるけれど、{人口|じんこう}はふえないよ。また{明日|あした}！") + "</p>" : "");
+  }
+  function normalIntroHtml(s) {
+    const learnedHere = STOCK.filter(e => isLearned(s, e)).length;
+    return "<h1>" + rich(D.title) + "</h1>" +
+      "<p>" + rich(D.howToPlay) + "</p>" +
+      '<p class="muted">' + rich("この{図書館|としょかん}のことば：") + learnedHere + " / " + STOCK.length + rich(" こ{覚|おぼ}えた") + "<br>" +
+      rich("いまのまちの{季節|きせつ}：") + seasonLabel(s.turn % 4) + "</p>";
+  }
+  function showStart() {
+    document.title = plain(D.title);
+    const s = loadStore();
+    const info = isDaily ? dailyIntroHtml(s) : normalIntroHtml(s);
+    app.innerHTML =
+      '<div class="card"><p class="muted">' + rich(D.shopName || "") + "</p>" + info + "</div>" +
+      '<button class="btn primary" id="startBtn" type="button">はじめる</button>';
+    document.getElementById("startBtn").onclick = startPlay;
+    top();
+  }
+
+  // ---- 問題 ----
+  function isLastQuestion() { return current === playQs.length - 1; }
+  function progressPercent(done) { return done / playQs.length * 100; }
+  function questionHtml(q, choices) {
+    return '<div class="progress-text">' + rich((current + 1) + " / " + playQs.length + " {問目|もんめ}") + "</div>" +
+      '<div class="progress"><div style="width:' + progressPercent(current) + '%"></div></div>' +
+      '<div class="card">' +
+        '<div class="industry">' + rich(q.heading) + "</div>" +
+        (q.hard ? ' <div class="hard">' + rich("★むずかしい") + "</div>" : "") +
+        q.promptHtml +
+      "</div>" +
+      '<div id="choices">' +
+        choices.map((c, i) => '<button class="btn" type="button" data-i="' + i + '">' + choiceLabelHtml(q, c.label) + "</button>").join("") +
+      "</div>" +
+      '<div id="feedback"></div>';
+  }
+  function feedbackHtml(q, chosen) {
+    const right = q.choices.find(c => c.points === 3);
+    const fb = D.feedback || {};
+    return '<div class="card">' +
+        '<p class="feedback p' + chosen.points + '">' + rich(fb[chosen.points] || chosen.points + "点") + "</p>" +
+        (chosen.points !== 3 ? "<p><b>" + rich("{正解|せいかい}：") + "</b>" + choiceLabelHtml(q, right.label) + "</p>" : "") +
+        phraseHtml(q.phrase) +
+      "</div>" +
+      '<button class="btn primary" id="nextBtn" type="button">' + rich(isLastQuestion() ? "{結果|けっか}を{見|み}る" : "つぎへ") + "</button>";
+  }
+  function goNext() {
+    if (isLastQuestion()) { showResult(); } else { current++; showQuestion(); }
+  }
+  function choose(q, chosen, btn) {
+    answers[current] = chosen;
+    if (chosen.points === 3) learnWord(q.entry);
+    app.querySelectorAll("#choices .btn").forEach(b => { b.disabled = true; });
+    btn.classList.add("chosen");
+    app.querySelector(".progress > div").style.width = progressPercent(current + 1) + "%";
+    document.getElementById("feedback").innerHTML = feedbackHtml(q, chosen);
+    const next = document.getElementById("nextBtn");
+    next.onclick = goNext;
+    next.scrollIntoView({ behavior: "smooth", block: "end" });
+  }
+  function showQuestion() {
+    const q = playQs[current];
+    const choices = shuffle(q.choices, playRnd);
+    app.innerHTML = questionHtml(q, choices);
+    app.querySelectorAll("#choices .btn").forEach(btn => {
+      btn.onclick = () => choose(q, choices[Number(btn.dataset.i)], btn);
+    });
+    top();
+  }
+
+  // ---- まちの記録を進める（人口・季節・今日のおつかい） ----
+  function peopleAddedNews(n) {
+    return rich("まちの{人口|じんこう}が") + "<b>" + n + "</b>" + rich("{人|にん}ふえた！");
+  }
+  function updateDailyTown(s, correctCount) {
+    const firstToday = s.dailyDone !== playDay;
+    s.dailyDone = playDay;
+    if (firstToday && correctCount > 0) {
+      s.people += D.peopleDailyBonus || 0;
+      return [peopleAddedNews(D.peopleDailyBonus || 0)];
+    }
+    if (!firstToday) return [rich("{今日|きょう}のおつかいは2{回目|かいめ}なので、{人口|じんこう}はふえないよ。")];
+    return [];
+  }
+  function updatePlayTown(s, correctCount) {
+    const news = [];
+    const add = correctCount * (D.peoplePerCorrect || 0);
+    s.people += add;
+    if (add > 0) news.push(peopleAddedNews(add));
+    s.turn += 1;
+    news.push(rich("まちの{季節|きせつ}が") + " " + seasonLabel(s.turn % 4) + " " + rich("になった。"));
+    return news;
+  }
+  function updateTown(correctCount) {
+    const s = loadStore();
+    const news = isDaily ? updateDailyTown(s, correctCount) : updatePlayTown(s, correctCount);
+    news.push(rich("いまの{人口|じんこう}：") + "<b>" + s.people.toLocaleString("ja-JP") + "</b>" + rich("{人|にん}"));
+    saveStore(s);
+    return news;
+  }
+
+  // ---- 結果 ----
+  function resultMessage(total) {
+    const msg = D.results.slice().sort((a, b) => b.minPoints - a.minPoints).find(r => total >= r.minPoints);
+    return msg ? msg.message : "";
+  }
+  function scoreCardHtml(total) {
+    return '<div class="card" style="text-align:center">' +
+        '<p class="muted">' + rich("{結果|けっか}") + "</p>" +
+        '<p class="score">' + total + " / " + playQs.length * 3 + rich("{点|てん}") + "</p>" +
+        (isDaily ? "" : "<h2>" + rich(resultMessage(total)) + "</h2>") +
+      "</div>";
+  }
+  function townNewsHtml(news) {
+    return '<div class="card town-news"><h2>' + rich("まちのニュース") + "</h2>" + news.map(n => "<p>" + n + "</p>").join("") + "</div>";
+  }
+  function newWordsHtml() {
+    if (!newWords.length) return "";
+    return '<div class="card"><h2>' + rich("{新|あたら}しく{覚|おぼ}えたことば") + "</h2>" + newWords.map(phraseHtml).join("") + "</div>";
+  }
+  function recapHtml(q, i) {
+    const c = answers[i];
+    return '<div class="card recap">' +
+        "<h3>" + (i + 1) + ". " + rich(q.entry.w) + ' <b class="p' + c.points + '">（' + c.points + rich("{点|てん}") + "）</b></h3>" +
+        '<p class="muted">' + escapeHtml(q.entry.m) + "</p>" +
+      "</div>";
+  }
+  function resultButtonsHtml() {
+    return (isDaily ? "" : '<button class="btn primary" id="againBtn" type="button">' + rich("もう{一度|いちど}あそぶ（ことばがかわるよ）") + "</button>") +
+      '<a class="btn secondary" href="index.html" style="text-decoration:none">' + rich("まちへ{戻|もど}る") + "</a>";
+  }
+  function showResult() {
+    const total = answers.reduce((s, c) => s + c.points, 0);
+    const correct = answers.filter(c => c.points === 3).length;
+    const news = updateTown(correct);
+    app.innerHTML =
+      scoreCardHtml(total) +
+      townNewsHtml(news) +
+      newWordsHtml() +
+      playQs.map(recapHtml).join("") +
+      resultButtonsHtml();
+    if (!isDaily) document.getElementById("againBtn").onclick = showStart;
+    top();
+  }
+
+  // 自動チェック用（画面には関係しない）
+  window.__library = { STOCK, makeQuestion, checkData, plain, reading, seededRandom };
+
+  showStart();
+})();
+</script>
+</body>
+</html>
