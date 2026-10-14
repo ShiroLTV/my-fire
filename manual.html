@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>遊び方ガイド</title>
+<!--
+  遊び方ガイド（社会のしくみ ミニゲームの事前マニュアル）
+  ・見た目は、まちの地図（index.html）の「きりがみ」に合わせている
+  ・文章の中の {漢字|かんじ} は、ページを開いたときに ふりがな になる（ゲームと同じ書き方）
+  ・駅の絵とインフラのジャンルの絵は、index.html と infrastructure-game.html からコピーしたもの
+  ・数字（人口がふえる数、まちが育つ数など）を index.html やゲームで変えたら、ここも直す
+-->
+<style>
+  :root {
+    --kinari: #FBF6EC; --sumi: #3A2E25; --ninjin: #D9622B; --ninjin-deep: #9E4119; --anzu: #EBA98A;
+    --tamago: #FFF1D2; --yamabuki: #E8B54A; --wakaba: #C9E2A0; --wakaba-deep: #9CC46E; --mori: #6F9F4C;
+    --mizuasagi: #A9D6CC; --mizu-deep: #7FBFB2; --kinako: #DDB98F; --kinako-deep: #C49A6A;
+    --nezumi: #C7C9C6; --nezumi-deep: #A3A6A2; --kogecha: #6B4A2E; --sora: #3E7BD6; --sakura: #F08AA0;
+    --paper: #FFFDF7; --muted: #6E6155; --line: #E3D6C2; --shade: #D9C8AE; --on-main: #FFFFFF;
+    --bg: var(--kinari); --text: var(--sumi);
+    --font-title: "Arial Rounded MT Bold", "Hiragino Maru Gothic ProN", "Hiragino Maru Gothic Pro", "UD Digi Kyokasho NK-B", "BIZ UDPGothic", sans-serif;
+    --font-sub: "Hiragino Maru Gothic ProN", "Hiragino Maru Gothic Pro", "BIZ UDPGothic", "Yu Gothic", sans-serif;
+    --font-text: "BIZ UDPGothic", "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+    /* インフラのジャンルの色 */
+    --g-water: #3aa0d0; --g-sewer: #9a6b45; --g-power: #d4a800; --g-gas: #e0613a;
+    --g-road: #78868f; --g-comm: #8a5cc4; --g-bousai: #3f9a52;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --kinari: #2A231C; --sumi: #F3EBDD; --tamago: #4A3D25; --yamabuki: #C9963A; --anzu: #B97B60;
+      --wakaba: #4E6537; --wakaba-deep: #5E7A42; --mori: #3B5528; --mizuasagi: #3F6A62; --mizu-deep: #4F7F75;
+      --kinako: #7A6043; --kinako-deep: #5E4831; --nezumi: #5E605D; --nezumi-deep: #474946; --kogecha: #C9A27A;
+      --sora: #6B9BE8; --sakura: #C8687D; --paper: #352C23; --ninjin: #F07F45; --ninjin-deep: #8A3712;
+      --muted: #C2B5A3; --line: #4A3E32; --shade: #17120D; --on-main: #1F1B17;
+      --g-water: #4fb3e0; --g-sewer: #b98a63; --g-power: #e3c13a; --g-gas: #f08060;
+      --g-road: #9aa8b1; --g-comm: #a985dc; --g-bousai: #62b874;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background-color: var(--bg); color: var(--text);
+    background-image: radial-gradient(rgba(107, 74, 46, .06) 1px, transparent 1.2px); background-size: 7px 7px;
+    font-family: var(--font-text); font-size: 17px; line-height: 1.85;
+    -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
+  }
+  a, button { touch-action: manipulation; }
+  main { max-width: 760px; margin: 0 auto; padding: 12px 16px 56px; }
+  body.no-ruby rt { display: none; }
+  rt { font-size: .55em; }
+  h1, h2, h3 { font-family: var(--font-sub); }
+  .sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+  .muted { color: var(--muted); }
+
+  /* ---- いちばん上 ---- */
+  .top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+  .back {
+    display: inline-flex; align-items: center; min-height: 48px; padding: 0 14px;
+    font-family: var(--font-sub); font-weight: bold; font-size: 15px; color: var(--text); text-decoration: none;
+    background: var(--paper); border-radius: 4px 10px 6px 8px; box-shadow: 3px 3px 0 var(--shade); transform: rotate(-1.5deg);
+  }
+  .ruby-toggle {
+    min-height: 48px; padding: 0 14px; white-space: nowrap; cursor: pointer;
+    font-family: var(--font-sub); font-size: 15px; font-weight: bold; color: var(--text);
+    background: var(--paper); border: 2px solid var(--kinako-deep); border-radius: 4px 12px 12px 4px;
+    box-shadow: 2px 3px 0 var(--shade); transform: rotate(1.5deg);
+  }
+  @media (hover: hover) { .back:hover, .ruby-toggle:hover { translate: 0 -2px; } }
+
+  /* ---- 題名（ゲームと同じ、ぷにっとした丸い題字） ---- */
+  .title-sign {
+    margin: 22px 0 10px; padding: 8px 20px 14px; background: var(--paper); display: inline-block;
+    border-radius: 6px 3px 8px 4px; transform: rotate(-1.2deg); box-shadow: 5px 5px 0 var(--kinako-deep);
+  }
+  .title-sign .kicker { margin: 0; font-family: var(--font-sub); font-weight: bold; font-size: 14px; color: var(--muted); }
+  .title-sign h1 {
+    font-family: var(--font-title); font-weight: 900; font-size: clamp(34px, 9vw, 48px); line-height: 1.45; margin: 0;
+    letter-spacing: .03em; color: var(--ninjin);
+    text-shadow:
+      .1em 0 0 #fff, .087em .05em 0 #fff, .05em .087em 0 #fff, 0 .1em 0 #fff, -.05em .087em 0 #fff, -.087em .05em 0 #fff,
+      -.1em 0 0 #fff, -.087em -.05em 0 #fff, -.05em -.087em 0 #fff, 0 -.1em 0 #fff, .05em -.087em 0 #fff, .087em -.05em 0 #fff,
+      .1em .1em 0 var(--kogecha), .05em .187em 0 var(--kogecha), 0 .2em 0 var(--kogecha), -.05em .187em 0 var(--kogecha),
+      -.1em .1em 0 var(--kogecha), .087em .15em 0 var(--kogecha), -.087em .15em 0 var(--kogecha);
+  }
+  .title-sign h1 rt { color: var(--text); text-shadow: none; font-weight: bold; }
+  .lead { margin: 8px 0 18px; }
+  .url {
+    display: inline-block; padding: 2px 12px; margin: 2px 0; font-family: var(--font-sub); font-weight: bold; word-break: break-all;
+    background: var(--tamago); border-left: 6px solid var(--yamabuki); border-radius: 2px 8px 8px 2px; color: var(--text);
+  }
+
+  /* ---- もくじ（紙の札） ---- */
+  .toc { display: flex; flex-wrap: wrap; gap: 10px 10px; margin: 0 0 26px; padding: 0; list-style: none; }
+  .toc a {
+    display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; text-decoration: none;
+    font-family: var(--font-sub); font-weight: bold; font-size: 15px; color: var(--sumi);
+    border-radius: 3px 8px 4px 6px; box-shadow: 2px 2px 0 var(--shade); transition: translate .15s;
+  }
+  .toc li:nth-child(3n+1) a { background: var(--wakaba); transform: rotate(-1.5deg); }
+  .toc li:nth-child(3n+2) a { background: var(--mizuasagi); transform: rotate(1deg); }
+  .toc li:nth-child(3n) a { background: var(--anzu); transform: rotate(-.5deg); }
+  @media (hover: hover) { .toc a:hover { translate: 0 -3px; } }
+  .toc a:active { translate: 1px 1px; }
+
+  /* ---- 章（紙のカード） ---- */
+  section.card {
+    background: var(--paper); border-radius: 6px 10px 8px 12px; padding: 16px 20px 18px; margin: 0 0 26px;
+    box-shadow: 5px 5px 0 var(--shade); scroll-margin-top: 12px;
+  }
+  section.card:nth-of-type(even) { transform: rotate(.25deg); }
+  /* 見出しは ふつうの文として並べる（flex にすると、ふりがなの前後にすき間が入るため） */
+  h2 { font-size: 22px; line-height: 1.7; margin: 0 0 8px; }
+  h2 .num {
+    display: inline-grid; place-items: center; width: 34px; height: 34px; font-size: 17px; margin-right: 10px; vertical-align: 2px;
+    color: var(--on-main); background: var(--ninjin); border-radius: 50% 46% 52% 48%; box-shadow: 2px 2px 0 var(--ninjin-deep);
+  }
+  h3 { font-size: 18px; margin: 16px 0 4px; }
+  p { margin: 6px 0 10px; }
+  ul { margin: 6px 0 10px; padding-left: 1.3em; }
+  li { margin: 2px 0; }
+  .note {
+    margin: 12px 0 0; padding: 8px 14px; background: var(--tamago); border-left: 6px solid var(--yamabuki);
+    border-radius: 2px 8px 8px 2px; font-size: 16px;
+  }
+  .note.warn { border-left-color: var(--ninjin); }
+
+  /* ---- 手順（番号の丸） ---- */
+  .steps { list-style: none; margin: 10px 0; padding: 0; counter-reset: step; }
+  .steps li { position: relative; padding: 4px 0 10px 50px; margin: 0; counter-increment: step; }
+  .steps li::before {
+    content: counter(step); position: absolute; left: 0; top: 2px; width: 36px; height: 36px; display: grid; place-items: center;
+    font-family: var(--font-title); font-weight: 900; font-size: 18px; color: var(--sumi);
+    background: var(--yamabuki); border-radius: 46% 52% 48% 50%; box-shadow: 2px 2px 0 var(--kinako-deep);
+  }
+  .steps li:not(:last-child)::after { /* 丸と丸をつなぐ点線 */
+    content: ""; position: absolute; left: 17px; top: 42px; bottom: -2px; border-left: 2.5px dashed var(--kinako-deep);
+  }
+  .steps b { font-family: var(--font-sub); }
+
+  /* ---- まちが育つ はしご ---- */
+  .ladder { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 8px; }
+  .ladder li {
+    display: grid; grid-template-columns: 76px 1fr; align-items: center; gap: 4px 12px; margin: 0;
+    padding: 6px 12px; background: var(--kinari); border-radius: 4px 10px 6px 8px; box-shadow: 2px 2px 0 var(--shade);
+  }
+  .ladder .count { font-family: var(--font-title); font-weight: 900; font-size: 20px; color: var(--ninjin); text-align: right; }
+  .ladder .count small { font-size: 13px; color: var(--muted); font-weight: bold; }
+  .ladder .lv { font-family: var(--font-sub); font-weight: bold; font-size: 18px; }
+  .ladder .open { display: block; font-size: 14px; color: var(--muted); font-weight: normal; }
+  .ladder .open b { color: var(--text); }
+
+  /* ---- ゲームの一覧（駅の絵つきの札） ---- */
+  .games { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 14px; margin: 12px 0 4px; }
+  .game {
+    display: grid; grid-template-columns: 64px 1fr; gap: 0 12px; align-items: start;
+    padding: 10px 12px; background: var(--kinari); border-radius: 6px 10px 8px 12px; box-shadow: 3px 3px 0 var(--shade);
+  }
+  .game:nth-child(odd) { transform: rotate(-.4deg); }
+  .game svg { width: 64px; height: 64px; filter: drop-shadow(2px 2px 0 rgba(58, 46, 37, .28)); }
+  .game h3 { margin: 0; font-size: 17px; }
+  .game .where { display: inline-block; margin: 2px 0 2px; padding: 0 8px; font-size: 13px; font-weight: bold; background: var(--tamago); border-radius: 3px; }
+  .game p { margin: 2px 0 0; font-size: 15px; line-height: 1.75; }
+
+  /* ---- インフラのジャンル ---- */
+  .genres { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); gap: 10px; margin: 12px 0; }
+  .genre {
+    display: grid; grid-template-columns: 40px 1fr; gap: 0 10px; align-items: center; padding: 8px 10px;
+    background: var(--kinari); border-left: 6px solid var(--g); border-radius: 2px 8px 8px 2px; box-shadow: 2px 2px 0 var(--shade);
+  }
+  .genre svg { width: 36px; height: 36px; --g-line: var(--g); --g-bg: var(--paper); filter: drop-shadow(1.5px 1.5px 0 rgba(43, 38, 32, .25)); }
+  .genre b { font-family: var(--font-sub); }
+  .genre span { display: block; font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+  /* ---- 地図でできること ---- */
+  .features { list-style: none; padding: 0; margin: 10px 0; display: grid; gap: 10px; }
+  .features li { display: grid; grid-template-columns: 36px 1fr; gap: 0 10px; align-items: start; margin: 0; }
+  .features svg { width: 32px; height: 32px; margin-top: 2px; color: var(--sumi); }
+  .features b { font-family: var(--font-sub); }
+
+  /* ---- こまったとき（押すと答えが開く） ---- */
+  details {
+    margin: 0 0 10px; background: var(--kinari); border-radius: 4px 10px 6px 8px; box-shadow: 2px 2px 0 var(--shade);
+  }
+  summary {
+    list-style: none; cursor: pointer; padding: 10px 14px 10px 44px; position: relative;
+    font-family: var(--font-sub); font-weight: bold; min-height: 48px; display: flex; align-items: center;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::before {
+    content: "?"; position: absolute; left: 10px; top: 50%; translate: 0 -50%; width: 26px; height: 26px;
+    display: grid; place-items: center; font-family: var(--font-title); font-weight: 900; color: var(--on-main);
+    background: var(--sora); border-radius: 50%;
+  }
+  details[open] summary::before { content: "!"; background: var(--ninjin); }
+  details p { margin: 0; padding: 0 14px 12px 44px; }
+
+  /* ---- 保護者・先生へ（少し落ち着いた色） ---- */
+  section.adult { background: var(--kinari); border: 2px dashed var(--kinako-deep); box-shadow: none; }
+
+  .foot { text-align: center; margin-top: 10px; }
+  .foot a {
+    display: inline-block; min-height: 56px; padding: 12px 26px; text-decoration: none;
+    font-family: var(--font-sub); font-weight: bold; font-size: 19px; color: var(--on-main);
+    background: var(--ninjin); border-radius: 10px 18px 12px 20px; box-shadow: 4px 4px 0 var(--ninjin-deep); transform: rotate(-1.5deg);
+  }
+  .foot a:active { box-shadow: 1px 1px 0 var(--ninjin-deep); translate: 3px 3px; }
+
+  /* 絵の色（index.html と同じ） */
+  .c-kinari { fill: var(--kinari); } .c-paper { fill: var(--paper); } .c-sumi { fill: var(--sumi); }
+  .c-anzu { fill: var(--anzu); } .c-tamago { fill: var(--tamago); } .c-yamabuki { fill: var(--yamabuki); }
+  .c-wakaba2 { fill: var(--wakaba-deep); } .c-mizu { fill: var(--mizuasagi); } .c-mizu2 { fill: var(--mizu-deep); }
+  .c-kinako { fill: var(--kinako); } .c-kinako2 { fill: var(--kinako-deep); } .c-nezumi { fill: var(--nezumi); } .c-nezumi2 { fill: var(--nezumi-deep); }
+  .c-kogecha { fill: var(--kogecha); } .c-sora { fill: var(--sora); } .c-sakura { fill: var(--sakura); }
+  .ln-sumi, .ln-sumi-thin, .ln-paper, .ln-field, .ln-stalk, .ln-kogecha, .ln-bag, .ln-stitch-k { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  .ln-sumi { stroke: var(--sumi); stroke-width: 2; } .ln-sumi-thin { stroke: var(--sumi); stroke-width: 1.2; }
+  .ln-paper { stroke: var(--paper); stroke-width: 1.4; } .ln-field { stroke: var(--mori); stroke-width: 1.8; }
+  .ln-stalk { stroke: var(--kogecha); stroke-width: 1.6; } .ln-kogecha { stroke: var(--kogecha); stroke-width: 2; }
+  .ln-bag { stroke: currentColor; stroke-width: 2; } .ln-stitch-k { stroke: var(--ninjin); stroke-width: 1.2; stroke-dasharray: 2 1.5; }
+
+  @media (max-width: 380px) {
+    section.card { padding: 14px 14px 16px; }
+    .game { grid-template-columns: 52px 1fr; } .game svg { width: 52px; height: 52px; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  @media print {
+    body { background: #fff; } .top, .toc, .foot { display: none; }
+    section.card { box-shadow: none; border: 1px solid #ccc; transform: none; break-inside: avoid; }
+    details { box-shadow: none; } details p { display: block; }
+  }
+</style>
+</head>
+<body>
+<!-- 絵（駅は index.html、インフラのジャンルは infrastructure-game.html と同じもの） -->
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <symbol id="st-shop" viewBox="0 0 64 64">
+    <path class="c-tamago" d="M10 30h44v26H10z"/><path class="c-kogecha" d="M27 40h10v16H27z"/>
+    <path class="c-mizu" d="M14 38h9v8h-9zM41 38h9v8h-9z"/>
+    <path class="c-sakura" d="M6 22h52v8q-3.25 5-6.5 0-3.25 5-6.5 0-3.25 5-6.5 0-3.25 5-6.5 0-3.25 5-6.5 0-3.25 5-6.5 0-3.25 5-6.5 0-3.25 5-6.5 0z"/>
+    <path class="c-paper" d="M12.5 22H19v8h-6.5zM25.5 22H32v8h-6.5zM38.5 22H45v8h-6.5zM51.5 22H58v8h-6.5z"/>
+    <path class="c-paper" d="M32 3l12 16H20z"/><path class="c-sumi" d="M27 13h10v6H27z"/>
+  </symbol>
+  <symbol id="st-rice" viewBox="0 0 64 64">
+    <path class="c-wakaba2" d="M3 44l14-12h44l-9 22H3z"/><path class="ln-field" d="M10 50l13-16M20 52l12-18M31 52l11-18M42 52l10-18"/>
+    <path class="c-kinako2" d="M34 22l11.5-11 11.5 11z"/><path class="c-kinari" d="M37 22h17v12H37z"/><path class="c-kogecha" d="M43 26h5v8h-5z"/>
+    <path class="ln-stalk" d="M14 30c0-8 2-14 6-20"/><path class="c-yamabuki" d="M18 13l4-5 1 7zM15 20l4-5 1 7zM20 7l3-4 1 6z"/>
+  </symbol>
+  <symbol id="st-inn" viewBox="0 0 64 64">
+    <path class="c-kinari" d="M12 30h40v26H12z"/><path class="c-mizu2" d="M2 32l12-14h36l12 14z"/><path class="c-mizu" d="M20 18l12-11 12 11z"/>
+    <path class="c-kogecha" d="M16 36h7v7h-7zM41 36h7v7h-7z"/><path class="c-sakura" d="M26 37h12v9H26z"/>
+    <path class="ln-paper" d="M30 37v9M34 37v9"/><path class="c-kogecha" d="M27 46h10v10H27z"/>
+  </symbol>
+  <symbol id="st-cityhall" viewBox="0 0 64 64">
+    <path class="c-nezumi2" d="M24 14h16v16H24z"/><circle class="c-paper" cx="32" cy="21" r="5"/><path class="ln-sumi-thin" d="M32 18v3h3"/>
+    <path class="ln-sumi" d="M32 14V3"/><path class="c-sora" d="M32 3l10 3-10 4z"/><path class="c-nezumi" d="M6 30h52v26H6z"/>
+    <path class="c-nezumi2" d="M4 28h56v5H4z"/><path class="c-paper" d="M12 37h6v19h-6zM24 37h6v19h-6zM34 37h6v19h-6zM46 37h6v19h-6z"/>
+  </symbol>
+  <symbol id="st-bank" viewBox="0 0 64 64">
+    <path class="c-kinako2" d="M5 27L32 9l27 18z"/><circle class="c-yamabuki" cx="32" cy="20" r="4.5"/><path class="c-kinako" d="M7 27h50v5H7z"/>
+    <path class="c-kinari" d="M11 32h6v18h-6zM23 32h6v18h-6zM35 32h6v18h-6zM47 32h6v18h-6z"/><path class="c-kinako2" d="M5 50h54v6H5z"/>
+  </symbol>
+  <symbol id="st-library" viewBox="0 0 64 64">
+    <path class="c-kinari" d="M10 30h44v26H10z"/><path class="c-yamabuki" d="M32 30C24 24 14 24 5 28V16c9-4 19-4 27 2z"/>
+    <path class="c-anzu" d="M32 30c8-6 18-6 27-2V16c-9-4-19-4-27 2z"/><path class="ln-sumi" d="M32 18v12"/>
+    <path class="c-sora" d="M15 38h8v10h-8zM41 38h8v10h-8z"/><path class="c-kogecha" d="M28 42h8v14h-8z"/>
+  </symbol>
+  <symbol id="st-infra" viewBox="0 0 64 64">
+    <path class="ln-kogecha" d="M13 30l-4 25M31 30l4 25M11 43h22"/><path class="c-mizu2" d="M7 15q15-9 30 0v15H7z"/>
+    <path class="c-paper" d="M7 20h30v3H7z"/><path class="c-sora" d="M22 24.5c-2 3-3 4-3 5a3 3 0 0 0 6 0c0-1-1-2-3-5z"/>
+    <path class="c-kinako2" d="M45 8h4v48h-4z"/><path class="c-kogecha" d="M37 14h20v3H37z"/>
+    <circle class="c-paper" cx="39" cy="13" r="2"/><circle class="c-paper" cx="55" cy="13" r="2"/>
+    <path class="c-nezumi" d="M49 22h7v9h-7z"/><path class="c-yamabuki" d="M58 33l-5 8h4l-2 7 7-10h-4l2-5z"/><path class="c-nezumi2" d="M4 54h56v4H4z"/>
+  </symbol>
+  <symbol id="i-bag" viewBox="0 0 24 24">
+    <path class="ln-bag" d="M8 9V6a4 4 0 0 1 8 0v3"/><path class="c-paper" d="M4 9h16l-1.5 13h-13z"/><path class="ln-stitch-k" d="M6.5 12h11"/>
+  </symbol>
+  <symbol id="i-review" viewBox="0 0 24 24">
+    <path class="c-paper" d="M3 3h14l4 4v14H3z"/><path class="ln-sumi-thin" d="M7 9h8M7 13h10M7 17h6"/><path class="c-yamabuki" d="M17 3v4h4z"/>
+  </symbol>
+  <symbol id="i-book" viewBox="0 0 24 24">
+    <path class="c-mizu2" d="M12 6C9 4 5 4 2 5v14c3-1 7-1 10 1z"/><path class="c-sakura" d="M12 6c3-2 7-2 10-1v14c-3-1-7-1-10 1z"/><path class="ln-sumi-thin" d="M12 6v14"/>
+  </symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24">
+    <g class="c-sumi"><circle cx="12" cy="12" r="7.5"/>
+      <rect x="10" y="1" width="4" height="5" rx="1"/><rect x="10" y="1" width="4" height="5" rx="1" transform="rotate(45 12 12)"/>
+      <rect x="10" y="1" width="4" height="5" rx="1" transform="rotate(90 12 12)"/><rect x="10" y="1" width="4" height="5" rx="1" transform="rotate(135 12 12)"/>
+      <rect x="10" y="1" width="4" height="5" rx="1" transform="rotate(180 12 12)"/><rect x="10" y="1" width="4" height="5" rx="1" transform="rotate(225 12 12)"/>
+      <rect x="10" y="1" width="4" height="5" rx="1" transform="rotate(270 12 12)"/><rect x="10" y="1" width="4" height="5" rx="1" transform="rotate(315 12 12)"/></g>
+    <circle class="c-kinako" cx="12" cy="12" r="3.2"/>
+  </symbol>
+  <symbol id="i-ruby" viewBox="0 0 24 24">
+    <path class="c-paper" d="M2 4h20v16H2z"/><path class="ln-sumi" d="M6 16l3-8 3 8M7 13.5h4"/><path class="ln-sumi-thin" d="M14 9h6M14 12h5M14 15h6"/>
+  </symbol>
+  <!-- インフラのジャンル（色は .genre の --g） -->
+  <symbol id="gi-water" viewBox="0 0 32 32">
+    <path style="fill:var(--g-line)" d="M3 9h13v6H3z"/><path style="fill:var(--g-line)" d="M14 9h6a5 5 0 0 1 5 5v3h-5v-2h-6z"/>
+    <path style="fill:var(--text)" d="M7 5h7v3H7z"/><path style="fill:var(--g-line)" d="M22.5 20c-2 3-3.2 4.6-3.2 6.1a3.2 3.2 0 0 0 6.4 0c0-1.5-1.2-3.1-3.2-6.1z"/>
+  </symbol>
+  <symbol id="gi-sewer" viewBox="0 0 32 32">
+    <circle style="fill:var(--g-line)" cx="16" cy="16" r="13"/><circle style="fill:var(--g-bg)" cx="16" cy="16" r="9.5"/>
+    <path style="fill:none;stroke:var(--g-line);stroke-width:2" d="M9 13h14M8 19h16M13 8v16M19 8v16"/>
+  </symbol>
+  <symbol id="gi-power" viewBox="0 0 32 32">
+    <path style="fill:var(--text)" d="M10 3h4v27h-4z"/><path style="fill:var(--text)" d="M3 7h18v3H3z"/><path style="fill:var(--g-line)" d="M23 9l-6 9h4l-2 9 8-12h-4l3-6z"/>
+  </symbol>
+  <symbol id="gi-gas" viewBox="0 0 32 32">
+    <path style="fill:var(--g-line)" d="M16 2c2 6 9 9 9 17.5a9 9 0 0 1-18 0c0-5 2.6-7.4 4-11 1 3 2 4.4 3 4.4 0-4 .8-7.4 2-10.9z"/>
+    <path style="fill:var(--g-bg)" d="M16 16c1.4 3 4.4 4.6 4.4 8a4.4 4.4 0 0 1-8.8 0c0-2.6 2.8-4.4 4.4-8z"/>
+  </symbol>
+  <symbol id="gi-road" viewBox="0 0 32 32">
+    <path style="fill:var(--g-bg)" d="M1 26q4-2 7.5 0t7.5 0 7.5 0 7.5 0v4H1z"/><path style="fill:var(--g-line)" d="M1 11h30v4H1z"/>
+    <path style="fill:var(--g-line)" d="M4 27a12 12 0 0 1 24 0h-4a8 8 0 0 0-16 0z"/><path style="fill:var(--text)" d="M3 7h2v4H3zM11 7h2v4h-2zM19 7h2v4h-2zM27 7h2v4h-2z"/>
+  </symbol>
+  <symbol id="gi-comm" viewBox="0 0 32 32">
+    <path style="fill:var(--g-line)" d="M16 9l7 21h-3.5L16 18l-3.5 12H9z"/><circle style="fill:var(--g-line)" cx="16" cy="8" r="3"/>
+    <path style="fill:none;stroke:var(--g-line);stroke-width:2.2;stroke-linecap:round" d="M10 4.5a7 7 0 0 0 0 7M22 4.5a7 7 0 0 1 0 7M6 2a12 12 0 0 0 0 12M26 2a12 12 0 0 1 0 12"/>
+  </symbol>
+  <symbol id="gi-bousai" viewBox="0 0 32 32">
+    <path style="fill:none;stroke:var(--text);stroke-width:2.4" d="M12 8V6a4 4 0 0 1 8 0v2"/><rect style="fill:var(--g-line)" x="6" y="8" width="20" height="21" rx="5"/>
+    <path style="fill:var(--g-bg)" d="M6 13q10 5 20 0v-1q-10 5-20 0z"/><path style="fill:var(--paper)" d="M14.5 17h3v3h3v3h-3v3h-3v-3h-3v-3h3z"/>
+  </symbol>
+</svg>
+
+<main id="main">
+  <div class="top">
+    <a class="back" href="index.html">← まちの{地図|ちず}へ{戻|もど}る</a>
+    <button class="ruby-toggle" id="rubyToggle" type="button">ふりがな：あり</button>
+  </div>
+
+  <div class="title-sign">
+    <p class="kicker">{社会|しゃかい}のしくみ ミニゲーム</p>
+    <h1>{遊|あそ}び{方|かた}ガイド</h1>
+  </div>
+  <p class="lead">ゲームでことばを{覚|おぼ}えるほど、{自分|じぶん}で{名前|なまえ}をつけたまちが「はらっぱ」から「{世界一|せかいいち}のまち」へ{育|そだ}っていくよ。{小学|しょうがく}5{年生|ねんせい}〜{中学生|ちゅうがくせい}むけのゲームです。</p>
+
+  <ul class="toc" aria-label="もくじ">
+    <li><a href="#start">はじめる{前|まえ}に</a></li>
+    <li><a href="#setup">さいしょの{設定|せってい}</a></li>
+    <li><a href="#flow">{遊|あそ}び{方|かた}の{流|なが}れ</a></li>
+    <li><a href="#grow">まちが{育|そだ}つしくみ</a></li>
+    <li><a href="#games">7つのゲーム</a></li>
+    <li><a href="#infra">まちのインフラ</a></li>
+    <li><a href="#map">{地図|ちず}でできること</a></li>
+    <li><a href="#help">こまったとき</a></li>
+    <li><a href="#adult">{保護者|ほごしゃ}・{先生|せんせい}へ</a></li>
+  </ul>
+
+  <section class="card" id="start">
+    <h2><span class="num">1</span>はじめる{前|まえ}に</h2>
+    <p>ブラウザでこのURLを{開|ひら}けば、すぐに{遊|あそ}べます。アプリを{入|い}れたり、{会員|かいいん}{登録|とうろく}をしたりする{必要|ひつよう}はありません。</p>
+    <p><span class="url">https://shiroltv.github.io/my-fire/</span></p>
+    <ul>
+      <li><b>{使|つか}える{端末|たんまつ}</b>：iPhone、Android、タブレット、パソコン。iPhone は Safari で{開|ひら}きます。</li>
+      <li><b>1{回|かい}の{長|なが}さ</b>：1つのゲームで5{問|もん}。</li>
+      <li><b>インターネット</b>：ページを{開|ひら}くときに{必要|ひつよう}です。</li>
+    </ul>
+    <h3>iPhone のホーム{画面|がめん}に{置|お}く</h3>
+    <ol class="steps">
+      <li>Safari で{上|うえ}のURLを{開|ひら}く</li>
+      <li>{画面|がめん}の{下|した}の{共有|きょうゆう}ボタン（□に↑のマーク）を{押|お}す</li>
+      <li>「ホーム{画面|がめん}に{追加|ついか}」を{押|お}す</li>
+    </ol>
+    <p class="note warn"><b>いつも{同|おな}じ{端末|たんまつ}・{同|おな}じブラウザで{遊|あそ}ぼう。</b>{記録|きろく}はその{端末|たんまつ}の{中|なか}に{保存|ほぞん}されるので、{別|べつ}の{端末|たんまつ}で{開|ひら}くと{最初|さいしょ}からになります。</p>
+  </section>
+
+  <section class="card" id="setup">
+    <h2><span class="num">2</span>さいしょの{設定|せってい}</h2>
+    <p>はじめて{開|ひら}くと、この{順|じゅん}に{画面|がめん}が{出|で}ます。どちらもあとから{変|か}えられます。</p>
+    <ol class="steps">
+      <li><b>まちの{見|み}た{目|め}をえらぶ</b><br>きりがみ・つみき・えんぴつ・ぬの・はんこ の5つから、{好|す}きなものを1つ。{地図|ちず}の{絵|え}やボタンの{感|かん}じが{変|か}わるだけで、{遊|あそ}び{方|かた}は{同|おな}じです。</li>
+      <li><b>まちの{名前|なまえ}をつける</b><br>8{文字|もじ}まで。{何|なに}も{入|い}れないと「まんまる」になります。{名前|なまえ}のうしろに「はらっぱ」「{村|むら}」「{町|まち}」などが{自動|じどう}でつき、まちが{育|そだ}つと{変|か}わります。</li>
+    </ol>
+    <p class="note">まちの{名前|なまえ}には、{自分|じぶん}や{友|とも}だちの{本名|ほんみょう}を{使|つか}わないようにしよう。</p>
+  </section>
+
+  <section class="card" id="flow">
+    <h2><span class="num">3</span>{遊|あそ}び{方|かた}の{流|なが}れ</h2>
+    <p>{地図|ちず}の{駅|えき}を{押|お}して5{問|もん}に{答|こた}え、{結果|けっか}を{見|み}て{地図|ちず}にもどる、のくり{返|かえ}しです。</p>
+    <ol class="steps">
+      <li><b>{地図|ちず}で{駅|えき}（{施設|しせつ}）を{押|お}す</b><br>「こうじちゅう」の{駅|えき}は、まだ{遊|あそ}べません。</li>
+      <li><b>5{問|もん}に{答|こた}える</b><br>いちばんよいと{思|おも}うものを{押|お}すと、すぐに{点数|てんすう}と{正|ただ}しい{答|こた}えが{出|で}ます。</li>
+      <li><b>{点数|てんすう}</b><br>いちばんよい{答|こた}えは3{点|てん}。お{店|みせ}などのゲームには「まあまあ」の1{点|てん}もあります。</li>
+      <li><b>{結果|けっか}を{見|み}る</b><br>5{問|もん}の{合計|ごうけい}（15{点|てん}{満点|まんてん}）、まちのニュース、{新|あたら}しく{覚|おぼ}えたことばが{出|で}ます。</li>
+      <li><b>{地図|ちず}にもどる</b><br>まちが{育|そだ}っていたら、{地図|ちず}にお{知|し}らせが{出|で}ます。</li>
+    </ol>
+    <p class="note">3{点|てん}をとると、その{問題|もんだい}のことばが「{覚|おぼ}えたことば」になり、まちの{人口|じんこう}が10{人|にん}ふえます。ゲームを1{回|かい}{遊|あそ}ぶごとに、{季節|きせつ}が{春|はる}→{夏|なつ}→{秋|あき}→{冬|ふゆ}と{進|すす}みます。</p>
+  </section>
+
+  <section class="card" id="grow">
+    <h2><span class="num">4</span>まちが{育|そだ}つしくみ</h2>
+    <p>{覚|おぼ}えたことばの{数|かず}で、まちの{呼|よ}び{名|な}が{変|か}わり、{工事中|こうじちゅう}の{施設|しせつ}が{開|ひら}きます。</p>
+    <ol class="ladder">
+      <li><span class="count">0<small>こ</small></span><span class="lv">はらっぱ<span class="open"><b>まんまるおにぎり{堂|どう}</b> で{遊|あそ}べる</span></span></li>
+      <li><span class="count">1<small>こ</small></span><span class="lv">{村|むら}<span class="open"><b>{田|た}んぼ</b>・<b>{図書館|としょかん}</b> の{工事|こうじ}が{終|お}わる</span></span></li>
+      <li><span class="count">3<small>こ</small></span><span class="lv">{町|まち}<span class="open"><b>{民宿|みんしゅく}</b>・<b>インフラ{管理|かんり}センター</b> の{工事|こうじ}が{終|お}わる</span></span></li>
+      <li><span class="count">6<small>こ</small></span><span class="lv">{市|し}<span class="open"><b>{市役所|しやくしょ}</b> の{工事|こうじ}が{終|お}わる</span></span></li>
+      <li><span class="count">12<small>こ</small></span><span class="lv">{大都市|だいとし}<span class="open"><b>{銀行|ぎんこう}</b> の{工事|こうじ}が{終|お}わる</span></span></li>
+      <li><span class="count">30<small>こ</small></span><span class="lv">{未来都市|みらいとし}<span class="open">ロケットや{飛行船|ひこうせん}が{来|く}る</span></span></li>
+      <li><span class="count">100<small>こ</small></span><span class="lv">{世界一|せかいいち}のまち<span class="open">にじと{噴水|ふんすい}が{出|で}る</span></span></li>
+    </ol>
+    <p>まちが{育|そだ}つと、{木|き}・{家|いえ}・ビル・{観覧車|かんらんしゃ}などが{地図|ちず}にふえます。{人口|じんこう}が50{人|にん}ふえるごとに、まちの{人|ひと}もひとりずつふえます（10{人|にん}まで）。ふえたものを{押|お}すと、ふえたわけが{札|ふだ}で{出|で}ます。</p>
+  </section>
+
+  <section class="card" id="games">
+    <h2><span class="num">5</span>7つのゲーム</h2>
+    <p>どのゲームも5{問|もん}です。{場面|ばめん}や{数字|すうじ}は{毎回|まいかい}かわるので、{何度|なんど}でも{遊|あそ}べます。</p>
+    <div class="games">
+      <div class="game"><svg aria-hidden="true"><use href="#st-shop"/></svg><div><h3>お{店|みせ}の{店長|てんちょう}になろう</h3><span class="where">まんまるおにぎり{堂|どう}</span><p>おにぎり{屋|や}の{店長|てんちょう}。お{店|みせ}の{場面|ばめん}で、いちばんよい{判断|はんだん}をえらぶ。</p></div></div>
+      <div class="game"><svg aria-hidden="true"><use href="#st-rice"/></svg><div><h3>お{米|こめ}{農家|のうか}になろう</h3><span class="where">{田|た}んぼ</span><p>お{米|こめ}をつくる{農家|のうか}。{田|た}んぼの{場面|ばめん}で、いちばんよい{答|こた}えをえらぶ。</p></div></div>
+      <div class="game"><svg aria-hidden="true"><use href="#st-library"/></svg><div><h3>ことばの{図書館|としょかん}</h3><span class="where">{図書館|としょかん}</span><p>{四字熟語|よじじゅくご}やことわざの{意味|いみ}・{使|つか}い{方|かた}に{答|こた}える。</p></div></div>
+      <div class="game"><svg aria-hidden="true"><use href="#st-inn"/></svg><div><h3>{民宿|みんしゅく}の{主人|しゅじん}になろう</h3><span class="where">{民宿|みんしゅく}</span><p>{小|ちい}さな{民宿|みんしゅく}の{主人|しゅじん}。{民宿|みんしゅく}の{場面|ばめん}で、いちばんよい{答|こた}えをえらぶ。</p></div></div>
+      <div class="game"><svg aria-hidden="true"><use href="#st-infra"/></svg><div><h3>まちのインフラ</h3><span class="where">インフラ{管理|かんり}センター</span><p>{水道|すいどう}・{電気|でんき}・ガス・{道路|どうろ}・{通信|つうしん}など、くらしをささえるしくみの{問題|もんだい}に{答|こた}える。</p></div></div>
+      <div class="game"><svg aria-hidden="true"><use href="#st-cityhall"/></svg><div><h3>{市長|しちょう}になろう</h3><span class="where">{市役所|しやくしょ}</span><p>まちの{市長|しちょう}。{意見|いけん}のよしあしではなく、まちのことが「どうやって{決|き}まるか」を{考|かんが}える。</p></div></div>
+      <div class="game"><svg aria-hidden="true"><use href="#st-bank"/></svg><div><h3>{銀行|ぎんこう}の{相談係|そうだんがかり}になろう</h3><span class="where">{銀行|ぎんこう}</span><p>おにぎり{屋|や}さん・{農家|のうか}さん・{民宿|みんしゅく}さんから、お{金|かね}の{相談|そうだん}を{受|う}ける。</p></div></div>
+    </div>
+  </section>
+
+  <section class="card" id="infra">
+    <h2><span class="num">6</span>まちのインフラの{遊|あそ}び{方|かた}</h2>
+    <p>まちが「{町|まち}」になると（{覚|おぼ}えたことば3こ）、{地図|ちず}の{右下|みぎした}の「インフラ{管理|かんり}センター」で{遊|あそ}べます。くらしをささえるしくみのことばが101こあります。</p>
+    <h3>ジャンルをえらぶ</h3>
+    <p>はじめの{画面|がめん}の「まちの{断面図|だんめんず}」で{絵|え}を{押|お}すか、{下|した}のジャンルボタンを{押|お}します。「ぜんぶのジャンル」もえらべます。</p>
+    <div class="genres">
+      <div class="genre" style="--g:var(--g-water)"><svg aria-hidden="true"><use href="#gi-water"/></svg><div><b>{水道|すいどう}</b><span>{給水塔|きゅうすいとう}、{水道管|すいどうかん}</span></div></div>
+      <div class="genre" style="--g:var(--g-sewer)"><svg aria-hidden="true"><use href="#gi-sewer"/></svg><div><b>{下水|げすい}</b><span>{下水管|げすいかん}、マンホール</span></div></div>
+      <div class="genre" style="--g:var(--g-power)"><svg aria-hidden="true"><use href="#gi-power"/></svg><div><b>{電気|でんき}</b><span>{電柱|でんちゅう}・{電線|でんせん}</span></div></div>
+      <div class="genre" style="--g:var(--g-gas)"><svg aria-hidden="true"><use href="#gi-gas"/></svg><div><b>ガス</b><span>ガス{管|かん}、ガスメーター</span></div></div>
+      <div class="genre" style="--g:var(--g-road)"><svg aria-hidden="true"><use href="#gi-road"/></svg><div><b>{道路|どうろ}・{橋|はし}</b><span>{道路|どうろ}、{信号機|しんごうき}、{横断|おうだん}{歩道|ほどう}</span></div></div>
+      <div class="genre" style="--g:var(--g-comm)"><svg aria-hidden="true"><use href="#gi-comm"/></svg><div><b>{通信|つうしん}</b><span>アンテナ、{通信|つうしん}ケーブル</span></div></div>
+      <div class="genre" style="--g:var(--g-bousai)"><svg aria-hidden="true"><use href="#gi-bousai"/></svg><div><b>くらしと{防災|ぼうさい}</b><span>ひなん{所|じょ}の{旗|はた}、{備蓄|びちく}の{箱|はこ}</span></div></div>
+    </div>
+    <p>ことばを1こでも{覚|おぼ}えたジャンルには、{断面図|だんめんず}で{色|いろ}がつきます。まだのジャンルは{灰色|はいいろ}。7つぜんぶに{色|いろ}をつけるのが{目標|もくひょう}です。</p>
+    <h3>{問題|もんだい}は3{種類|しゅるい}</h3>
+    <ul>
+      <li>{説明|せつめい}を{読|よ}んで、{合|あ}うことばをえらぶ</li>
+      <li>ことばを{見|み}て、{合|あ}う{説明|せつめい}をえらぶ</li>
+      <li>「なぜ？」クイズ：「マンホールのふたが{丸|まる}いのはなぜ？」のような、くらしに{役立|やくだ}つ{問題|もんだい}</li>
+    </ul>
+    <p class="note">{答|こた}えたあとには「なるほど{解説|かいせつ}」が{出|で}ます。まちがえても{解説|かいせつ}を{読|よ}めば、{次|つぎ}は{正解|せいかい}できるよ。{問題|もんだい}の{途中|とちゅう}でやめたいときは、{左上|ひだりうえ}の「インフラ{管理|かんり}センターへ{戻|もど}る」を{押|お}します（その{回|かい}の{答|こた}えは{数|かぞ}えません）。</p>
+  </section>
+
+  <section class="card" id="map">
+    <h2><span class="num">7</span>{地図|ちず}でできること</h2>
+    <ul class="features">
+      <li><svg aria-hidden="true"><use href="#i-bag"/></svg><div><b>{今日|きょう}のおつかい</b><br>1{日|にち}1{回|かい}だけの1{問|もん}。その{日|ひ}にえらばれた{施設|しせつ}で{答|こた}えます。{正解|せいかい}すると{人口|じんこう}が30{人|にん}ふえます。</div></li>
+      <li><svg aria-hidden="true"><use href="#i-review"/></svg><div><b>ことばのおさらい</b><br>{覚|おぼ}えたことばから3{問|もん}。{正解|せいかい}すると{人口|じんこう}が5{人|にん}ずつふえます。ことばを1こ{覚|おぼ}えると{使|つか}えます。</div></li>
+      <li><svg aria-hidden="true"><use href="#i-book"/></svg><div><b>ことば{図鑑|ずかん}</b><br>{覚|おぼ}えたことばと{意味|いみ}を、{施設|しせつ}ごとに{見|み}られます。まだのことばは「？？？」の{数|かず}だけ{出|で}ます。</div></li>
+      <li><svg aria-hidden="true"><use href="#i-gear"/></svg><div><b>まちの{設定|せってい}（{右上|みぎうえ}の{歯車|はぐるま}）</b><br>まちの{見|み}た{目|め}を{変|か}える、まちの{名前|なまえ}を{変|か}える、まちを{最初|さいしょ}からにする。</div></li>
+      <li><svg aria-hidden="true"><use href="#i-ruby"/></svg><div><b>ふりがな（{右上|みぎうえ}）</b><br>{漢字|かんじ}のふりがなを{出|だ}す・{消|け}す。ゲームの{画面|がめん}とこのガイドにもあります。</div></li>
+    </ul>
+    <p class="note warn">「まちを{最初|さいしょ}からにする」を{押|お}すと、{覚|おぼ}えたことば・{人口|じんこう}・{季節|きせつ}・まちの{名前|なまえ}が{消|き}えて、もとに{戻|もど}せません。{見|み}た{目|め}だけは{残|のこ}ります。</p>
+  </section>
+
+  <section class="card" id="help">
+    <h2><span class="num">8</span>こまったとき</h2>
+    <p class="muted">{質問|しつもん}を{押|お}すと、{答|こた}えが{開|ひら}きます。</p>
+    <details><summary>{駅|えき}を{押|お}しても、ぶるっとゆれるだけ</summary>
+      <p>「こうじちゅう」の{駅|えき}です。ほかのゲームでことばを{覚|おぼ}えて、まちを{育|そだ}てよう。あと{何|なん}こかは、{地図|ちず}の「つぎに{工事|こうじ}が{終|お}わるばしょ」に{出|で}ます。</p></details>
+    <details><summary>{前|まえ}の{記録|きろく}がない</summary>
+      <p>{前|まえ}と{同|おな}じ{端末|たんまつ}・{同|おな}じブラウザか{確|たし}かめよう。プライベートモードでは{記録|きろく}が{残|のこ}りません。</p></details>
+    <details><summary>{今日|きょう}のおつかいで{人口|じんこう}がふえない</summary>
+      <p>おつかいで{人口|じんこう}がふえるのは、1{日|にち}1{回|かい}だけです。また{明日|あした}ちょうせんしよう。</p></details>
+    <details><summary>{字|じ}が{小|ちい}さい・{読|よ}めない</summary>
+      <p>「ふりがな：あり」にしよう。スマホは2{本|ほん}の{指|ゆび}で{広|ひろ}げると{大|おお}きくなります。</p></details>
+    <details><summary>{答|こた}えに{納得|なっとく}できない</summary>
+      <p>{答|こた}えたあとに{出|で}る、{正|ただ}しい{答|こた}えや{解説|かいせつ}を{読|よ}もう。それでもおかしいと{思|おも}ったら、{先生|せんせい}やおうちの{人|ひと}に{教|おし}えてね。</p></details>
+  </section>
+
+  <section class="card adult" id="adult">
+    <h2><span class="num">9</span>{保護者|ほごしゃ}・{先生|せんせい}へ</h2>
+    <p>{遊|あそ}んだ{記録|きろく}は、{遊|あそ}んだ{端末|たんまつ}のブラウザの{中|なか}にだけ{保存|ほぞん}され、どこにも{送信|そうしん}されません。{制作者|せいさくしゃ}にも{届|とど}かないので、だれが{何点|なんてん}だったかを{外|そと}から{知|し}ることはできません。</p>
+    <ul>
+      <li><b>{個人|こじん}{情報|じょうほう}</b>：{会員|かいいん}{登録|とうろく}・ログイン・{広告|こうこく}はありません。{入力|にゅうりょく}するのは「まちの{名前|なまえ}」だけで、これも{端末|たんまつ}の{中|なか}にだけ{残|のこ}ります。</li>
+      <li><b>{記録|きろく}が{消|き}えるとき</b>：ブラウザの{履歴|りれき}やサイトデータを{消|け}したとき、プライベート（シークレット）モードを{閉|と}じたとき。</li>
+      <li><b>{端末|たんまつ}を{共用|きょうよう}するとき</b>：1{台|だい}の{端末|たんまつ}・1つのブラウザで、まちは1つです。きょうだいで{使|つか}うと、{同|おな}じまちを{育|そだ}てることになります。</li>
+      <li><b>{問題|もんだい}の{内容|ないよう}</b>：インフラや{防災|ぼうさい}の{問題|もんだい}には、{数字|すうじ}や{決|き}まりごと（{飲|の}み{水|みず}は{1人|ひとり}1{日|にち}3リットル、{災害用|さいがいよう}{伝言|でんごん}ダイヤル171 など）が{出|で}てきます。{地域|ちいき}の{防災|ぼうさい}の{案内|あんない}もあわせて{確|たし}かめると、より{役立|やくだ}ちます。</li>
+      <li><b>ふりがな</b>：{初|はじ}めは「あり」です。{中学生|ちゅうがくせい}など、なくても{読|よ}める{場合|ばあい}は「なし」にできます。</li>
+    </ul>
+  </section>
+
+  <p class="foot"><a href="index.html">まちの{地図|ちず}へ{行|い}く</a></p>
+</main>
+
+<script>
+(function () {
+  // {漢字|かんじ} を ふりがな にする（ゲームと同じ書き方。このページの文章は自分で書いたものだけ）
+  const main = document.getElementById("main");
+  main.innerHTML = main.innerHTML.replace(/\{([^{}|<>]+)\|([^{}|<>]+)\}/g, "<ruby>$1<rt>$2</rt></ruby>");
+  const toggle = document.getElementById("rubyToggle");
+  toggle.addEventListener("click", () => {
+    const off = document.body.classList.toggle("no-ruby");
+    toggle.textContent = off ? "ふりがな：なし" : "ふりがな：あり";
+  });
+})();
+</script>
+</body>
+</html>
