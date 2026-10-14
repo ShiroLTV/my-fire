@@ -1063,6 +1063,13 @@ const SITE_DATA = {
     <path class="c-yamabuki" d="M12 1l2.5 8.5L23 12l-8.5 2.5L12 23l-2.5-8.5L1 12l8.5-2.5z"/>
     <path class="c-sakura" d="M20 2l.8 2.2L23 5l-2.2.8L20 8l-.8-2.2L17 5l2.2-.8z"/>
   </symbol>
+  <symbol id="i-guide" viewBox="0 0 24 24">
+    <path class="c-paper" d="M3 4c3-1.5 6-1.5 9 0v17c-3-1.5-6-1.5-9 0z"/>
+    <path class="c-tamago" d="M12 4c3-1.5 6-1.5 9 0v17c-3-1.5-6-1.5-9 0z"/>
+    <path class="ln-sumi-thin" d="M12 4v17"/>
+    <path class="ln-sumi" d="M14.5 9.5a2 2 0 1 1 2.6 1.9c-.6.2-.6.6-.6 1.4"/>
+    <circle class="c-sumi" cx="16.5" cy="15.5" r="1"/>
+  </symbol>
   <symbol id="i-review" viewBox="0 0 24 24">
     <path class="c-paper" d="M3 3h14l4 4v14H3z"/>
     <path class="ln-sumi-thin" d="M7 9h8M7 13h10M7 17h6"/>
@@ -1452,6 +1459,9 @@ const SITE_DATA = {
               "<span>" + rich(learned ? "ことばのおさらい（{正解|せいかい}で{人口|じんこう}アップ）" : "ことばのおさらい（ことばを{覚|おぼ}えるとできるよ）") + "</span></button>" +
             '<button class="btn-sub s2" id="zukanBtn" type="button" aria-expanded="false" aria-controls="zukan">' + pic("i-book", "") +
               "<span>" + rich("ことば{図鑑|ずかん}を{見|み}る") + "</span></button>" +
+            // 遊び方ガイド（manual.html）を開く
+            '<a class="btn-sub s3" href="manual.html" style="text-decoration:none">' + pic("i-guide", "") +
+              "<span>" + rich("{遊|あそ}び{方|かた}") + "</span></a>" +
           "</div>" +
           zukan +
         "</div>" +
